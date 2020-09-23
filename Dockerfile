@@ -26,3 +26,5 @@ RUN apt update -y
     && apt-get clean autoclean
     && apt-get autoremove --yes
     && rm -rf /root/.npm /usr/local/lib/node_modules/npm /var/lib/apt/lists/*
+
+CMD ["pm2-runtime", "/app/main.js"]
