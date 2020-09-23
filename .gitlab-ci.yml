@@ -1,0 +1,12 @@
+build:
+  image: docker:19.03.11
+  stage: build
+  services:
+    - docker:19.03.11-dind
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
+  script:
+    - cat config_template.json | sed -e 's/<BOT-TOKEN>/'$TOKEN'/g' -e 's/<YOUTUBE_DATA_API_V3_KEY>/'$YT_KEY'/g' -e 's/"<DISCORD-OWNER1-IDS>"/'$M'/g' > config.json
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG

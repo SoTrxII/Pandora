@@ -57,8 +57,6 @@ export class RedisCommandBroker implements IRedisCommandBroker {
     }
     const returnPayload: RedisMessage = {
       data: null,
-      campaignRoll20Ids: message.campaignRoll20Ids,
-      campaignId: message.campaignId,
       hasError: hasError,
     };
     this.redis.publish(PubChannels.RecordingBegan, returnPayload);
@@ -73,8 +71,6 @@ export class RedisCommandBroker implements IRedisCommandBroker {
     }
     const returnPayload: RedisMessage = {
       data: null,
-      campaignRoll20Ids: message.campaignRoll20Ids,
-      campaignId: message.campaignId,
       hasError: hasError,
     };
     this.redis.publish(PubChannels.RecordingStopped, returnPayload);

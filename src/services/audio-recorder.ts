@@ -135,8 +135,8 @@ export class AudioRecorder implements IRecorderService {
     // By default, chunk.time is the receipt time
     const chunkTime = hrtime(this.startTime);
     // ~~ is a fancy truncate method
-    // I don't understand what's 48000 and 20833.333 in this bit
-    // 48000 is certainly Discord audio sampling rate.
+    // I don't understand what are 48000 and 20833.333 in this bit
+    // 48000 is most certainly Discord audio sampling rate.
     chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
     //TODO : FEEDBACK INTERVAL (glowing ring when speaking, not that important)
     let userTrackNo: number, userRecents: Chunk[];

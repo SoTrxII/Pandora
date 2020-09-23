@@ -57,7 +57,7 @@ container.bind<Craig>(TYPES.Craig).toConstantValue(
     container.get<ICommandMatcher>(TYPES.CommandMatcher),
     container.get<IRedisCommandBroker>(TYPES.RedisCommandBroker),
     {
-      token: process.env.CRAIG_TOKEN,
+      token: process.env.PANDORA_TOKEN,
       commandPrefix: process.env.COMMAND_PREFIX,
       useCommands: Boolean(Number(process.env.USE_COMMAND_INTERFACE)),
       useRedis: Boolean(Number(process.env.USE_REDIS_INTERFACE)),
