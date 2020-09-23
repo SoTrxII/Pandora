@@ -6,6 +6,7 @@
 
 # Unignore all dirs
 !*/
+!Dockerfile
 
 # Ignore Recordings
 *.mp3

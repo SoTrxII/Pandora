@@ -17,7 +17,6 @@
     "eris": "^0.13.3",
     "erlpack": "github:abalabahaha/erlpack",
     "inversify": "^5.0.1",
-    "inversify-inject-decorators": "^3.1.0",
     "ioredis": "^4.17.3",
     "node-opus": "^0.3.3",
     "reflect-metadata": "^0.1.13",

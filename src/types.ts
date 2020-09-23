@@ -4,4 +4,6 @@ export const TYPES = {
   Craig: Symbol.for("Craig"),
   Command: Symbol.for("Command"),
   CommandMatcher: Symbol.for("CommandMatcher"),
+  RedisService: Symbol.for("RedisService"),
+  RedisCommandBroker: Symbol.for("RedisCommandBroker"),
 };

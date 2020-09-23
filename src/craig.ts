@@ -4,17 +4,23 @@ import "./utils/eris-custom";
 import { ICraigConfig } from "./@types/craig";
 import { Message } from "eris";
 import { ICommandMatcher } from "./@types/command-matcher";
+import { IRedis } from "./@types/redis";
+import { IRedisCommandBroker } from "./@types/redis-command-broker";
 
 @injectable()
 export class Craig {
   constructor(
     private commandMatcher: ICommandMatcher,
+    private redisBroker: IRedisCommandBroker,
     private config: ICraigConfig
   ) {}
   public client = new Eris.Client(this.config.token);
 
   async bootUp(): Promise<void> {
-    this.client.on("messageCreate", (m) => this.matchCommand(m));
+    if (this.config.useCommands)
+      this.client.on("messageCreate", (m) => this.matchCommand(m));
+
+    if (this.config.useRedis) this.redisBroker.startListening(this.client);
     this.client.on("connect", () => console.log("Up & Ready"));
     await this.client.connect();
   }
