@@ -4,10 +4,11 @@ COPY package.json /app/
 RUN apt update -y \
     && DEBIAN_FRONTEND=noninteractive apt install -y nodejs npm ffmpeg flac vorbis-tools build-essential zip fdkaac git \
     && npm install \
-    && npm run build \
+
+COPY . /app/
+RUN npm run build \
     && cd /app/cook \
     && for i in *.c; do gcc -O3 -o ${i%.c} $i; done
-COPY . /app/
 
 FROM ubuntu:latest as prod
 WORKDIR /app
