@@ -55,7 +55,7 @@ The acknowledgment will be sent on the channel `recordingDiscordStopped`.
 
 ### Docker
 Using Docker to run the bot is the recommended (and easy) way.
-```sh
+```bash
 # Either pull the bot from the GitHub registry (requiring login for some reason)
 docker login docker.pkg.github.com --username <YOUR_USERNAME>
 docker pull docker.pkg.github.com/sotrx/pandora/pandora:latest
@@ -65,7 +65,7 @@ docker build -t docker.pkg.github.com/sotrx/pandora/pandora:latest
 ```
 Once the image is pulled/built, run it:
 
-```sh
+```bash
 docker run \
 -e USE_COMMAND_INTERFACE="<1 or 0>" \
 -e USE_REDIS_INTERFACE="<1 or 0>" \
@@ -96,7 +96,7 @@ You'll need all these installed :
 + zip and unzip ( http://infozip.org/ )
 
 Quick install command: 
-```sh
+```bash
 # Debian-based distros
 sudo apt install ffmpeg flac vorbis-tools zip fdkaac
 # Red-Hat based distros (Yes there is really an extra hyphen)
@@ -107,7 +107,7 @@ sudo dnf install ffmpeg flac vorbis-tools zip fdk-aac
 
 Next, all the cooking scripts needs to be compiled. Beware, you will need GCC/make/autoconf
 (and maybe more depending on the distro).
-```sh
+```bash
 # From the project's root
 cd cook
 for i in \*.c; do gcc -O3 -o ${i%.c} $i; done
@@ -117,7 +117,7 @@ cd macosx; make
 
 #### Direct dependencies and transpilation
 
-```
+```bash
 # nodejs and npm must be installed
 npm install
 # Transpile Typescript into Javascript
@@ -135,7 +135,7 @@ However, this is not the best way to run it in a production environment.
 
 A cleaner way would be to copy the **dist** directory, containing the transpiled Javascript, into another location and
 only install the production dependencies (This is what the Dockerfile do).
-```sh
+```bash
 # From the project's root
 cp -r dist /away/pandora
 cp .env /away/pandora/.env
