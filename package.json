@@ -1,0 +1,54 @@
+{
+  "name": "craig-as-a-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "ISC",
+  "scripts": {
+    "pretest": "./node_modules/.bin/jest --clearCache",
+    "test": "./node_modules/.bin/jest",
+    "prebuild": "rm -rf build/*",
+    "build": "tsc && cp package.json dist/package.json",
+    "postbuild": "cp -r src/assets dist/src/",
+    "start:dev": "npm run build && node -r dotenv-safe/config dist/main.js "
+  },
+  "dependencies": {
+    "bufferutil": "^4.0.1",
+    "cyclic-32": "^1.1.0",
+    "eris": "^0.13.3",
+    "erlpack": "github:abalabahaha/erlpack",
+    "inversify": "^5.0.1",
+    "inversify-inject-decorators": "^3.1.0",
+    "ioredis": "^4.17.3",
+    "node-opus": "^0.3.3",
+    "reflect-metadata": "^0.1.13",
+    "ts-node": "^9.0.0",
+    "tslib": "^2.0.1",
+    "zlib-sync": "^0.1.7"
+  },
+  "devDependencies": {
+    "@types/ioredis": "^4.17.4",
+    "@types/jest": "^26.0.13",
+    "@types/node": "^14.6.4",
+    "@typescript-eslint/eslint-plugin": "^4.1.0",
+    "@typescript-eslint/parser": "^4.1.0",
+    "dotenv-safe": "^8.2.0",
+    "eslint": "^7.8.1",
+    "eslint-config-prettier": "^6.10.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "jest": "^26.4.2",
+    "prettier": "^2.1.1",
+    "ts-jest": "^26.3.0",
+    "typescript": "^4.0.2"
+  },
+  "eslintConfig": {
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "plugin:@typescript-eslint/recommended",
+      "prettier/@typescript-eslint",
+      "plugin:prettier/recommended"
+    ]
+  }
+}

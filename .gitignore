@@ -1,0 +1,26 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+# Ignore Recordings
+*.mp3
+*.ogg
+*.flac
+*.aac
+rec
+
+# Ignore build
+dist/*
+
+# Ignore mdules
+node_modules
+
+#Ignore dev specific files
+.env
+yarn-error.log
+.idea
