@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json /app/
 RUN apt update -y \
     && DEBIAN_FRONTEND=noninteractive apt install -y nodejs npm ffmpeg flac vorbis-tools build-essential zip fdkaac git \
-    && npm install \
+    && npm install
 
 COPY . /app/
 RUN npm run build \
