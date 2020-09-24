@@ -1,27 +1,25 @@
-FROM node:current-slim as build
+# Expected size : 214Mb
+FROM node:current-alpine as build
 WORKDIR /app
 COPY package.json /app/
-RUN apt update -y \
-    && DEBIAN_FRONTEND=noninteractive apt install --no-install-recommends  -y build-essential git python \
+RUN apk add alpine-sdk git python \
     && npm install
 
 COPY . /app/
 RUN npm run build
 
-FROM node:current-slim as prod
+FROM node:current-alpine as prod
 WORKDIR /app
 COPY --from=build /app/dist /app
-RUN apt update -y \
-    && DEBIAN_FRONTEND=noninteractive apt install --no-install-recommends -y ffmpeg build-essential git python\
+RUN apk add --no-cache --virtual=.build-deps alpine-sdk git python \
+    && apk add --no-cache ffmpeg \
     && npm install -g pm2 modclean \
     && npm install --only=prod \
     && modclean -r \
     && modclean -r /usr/local/lib/node_modules/pm2 \
     && npm uninstall -g modclean \
     && npm cache clear --force \
-    && DEBIAN_FRONTEND=noninteractive apt purge -y build-essential git \
-    && apt clean autoclean \
-    && apt autoremove --yes \
-    && rm -rf /root/.npm /usr/local/lib/node_modules/npm /var/lib/apt/lists/* /var/cache/apt/archives/*
+    && apk del .build-deps \
+    && rm -rf /root/.npm /usr/local/lib/node_modules/npm
 
 CMD ["pm2-runtime", "/app/main.js"]
