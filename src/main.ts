@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { container } from "./inversify.config";
-import { Craig } from "./craig";
+import { Pandora } from "./Pandora";
 import { TYPES } from "./types";
 
-const craig = container.get<Craig>(TYPES.Craig);
-craig.bootUp();
+const pandora = container.get<Pandora>(TYPES.Pandora);
+pandora.bootUp();

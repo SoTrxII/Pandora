@@ -1,18 +1,18 @@
 import { injectable } from "inversify";
 import * as Eris from "eris";
 import "./utils/eris-custom";
-import { ICraigConfig } from "./@types/craig";
+import { IPandoraConfig } from "./@types/pandora";
 import { Message } from "eris";
 import { ICommandMatcher } from "./@types/command-matcher";
 import { IRedis } from "./@types/redis";
 import { IRedisCommandBroker } from "./@types/redis-command-broker";
 
 @injectable()
-export class Craig {
+export class Pandora {
   constructor(
     private commandMatcher: ICommandMatcher,
     private redisBroker: IRedisCommandBroker,
-    private config: ICraigConfig
+    private config: IPandoraConfig
   ) {}
   public client = new Eris.Client(this.config.token);
 

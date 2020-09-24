@@ -1,12 +1,12 @@
 # Pandora: Discord recorder
 
 Pandora is a multi-track Discord voice recorder written in Typescript. This project should actually be considered as a kind-of a fork of
-[Yahweasel's Craig](https://github.com/Yahweasel/craig) as the recording process is itself pretty much the same, and the
-"cooking" process is just a straight copy. Initially, I just needed to add some workflow changes to Craig, but plain
+[Yahweasel's Pandora](https://github.com/Yahweasel/craig) as the recording process is itself pretty much the same, and the
+"cooking" process is just a straight copy. Initially, I just needed to add some workflow changes to Pandora, but plain
 Javascript wasn't that easy to work with, and I ended up refactoring the whole thing, cherry picking
 the functionalities I wanted.
 
-Pandora can be regarded as a simplified version of Craig, intended to be used to record a single voice channel at a time.
+Pandora can be regarded as a simplified version of Pandora, intended to be used to record a single voice channel at a time.
 
 ## Usage
 
@@ -86,7 +86,7 @@ Running the bot natively is a bit trickier, but not that difficult. Using Docker
 
 #### Requirements
 
-The requirements are the same as Craig's. 
+The requirements are the same as Pandora's. 
 You'll need all these installed : 
 + ffmpeg ( http://ffmpeg.org/ ) compiled with libopus support
 + flac ( https://xiph.org/flac/ )
@@ -166,8 +166,9 @@ If USE_REDIS_INTERFACE is "0", REDIS_HOST is defaulting to localhost and can be 
 Both USE_COMMAND_INTERFACE and USE_COMMAND_INTERFACE can be enabled at the same time. The audio recording process is a Singleton. 
 You could start a recording via Redis and end it via a discord command (Why tho ?).
 
+## Roadmap
 
-
++ Replace node-opus by discordjs/opus
 
 
 

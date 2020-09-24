@@ -70,7 +70,7 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
       flags: "wx",
     });
     const info = {
-      // TODO : Key and delete are attributes linked to the original Craig Web service
+      // TODO : Key and delete are attributes linked to the original Pandora Web service
       // Once I've ascertained these aren't used in cooking, I'll delete them from here
       key: "0",
       delete: "0",

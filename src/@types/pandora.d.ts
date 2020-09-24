@@ -1,4 +1,4 @@
-export interface ICraigConfig {
+export interface IPandoraConfig {
   token: string;
   commandPrefix: string;
   useRedis: boolean;

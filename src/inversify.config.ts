@@ -4,7 +4,7 @@ import { IRecorderService } from "./@types/audio-recorder";
 import { AudioRecorder } from "./services/audio-recorder";
 import { OpusMultiTracksEncoder } from "./components/opus-multi-tracks-encoder";
 import { IMultiTracksEncoder } from "./@types/multi-tracks-encoder";
-import { Craig } from "./craig";
+import { Pandora } from "./Pandora";
 import { ICommand } from "./@types/command";
 import { ICommandMatcher } from "./@types/command-matcher";
 import { CommandMatcher } from "./services/command-matcher";
@@ -52,8 +52,8 @@ container
 container.bind<ICommand>(TYPES.Command).to(StartRecording);
 container.bind<ICommand>(TYPES.Command).to(StopRecording);
 
-container.bind<Craig>(TYPES.Craig).toConstantValue(
-  new Craig(
+container.bind<Pandora>(TYPES.Pandora).toConstantValue(
+  new Pandora(
     container.get<ICommandMatcher>(TYPES.CommandMatcher),
     container.get<IRedisCommandBroker>(TYPES.RedisCommandBroker),
     {
