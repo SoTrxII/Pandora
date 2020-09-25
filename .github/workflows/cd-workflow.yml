@@ -1,0 +1,20 @@
+name: Docker CD
+on:
+  push:
+    branches:
+      - master
+jobs:
+  Build-and-Push-Docker-Image:
+    runs-on: ubuntu-latest
+    name: Docker Build, Tag, Push
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Build container image
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+          registry: docker.pkg.github.com
+          repository: sotrxii/pandora/pandora
+          tag_with_ref: true
