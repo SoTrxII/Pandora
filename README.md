@@ -1,9 +1,9 @@
 # Pandora: Discord recorder
 
-Pandora is a multi-track Discord voice recorder written in Typescript. This project should actually be considered as a kind-of a fork of
-[Yahweasel's Craig](https://github.com/Yahweasel/craig) as the recording process is itself pretty much the same, and the
-"cooking" process is just a straight copy. Initially, I just needed to add some workflow changes to Pandora, but plain
-Javascript wasn't that easy to work with, and I ended up refactoring the whole thing, cherry picking
+Pandora is a multi-track Discord voice recorder written in Typescript. This project should actually be considered as 
+kind-of a fork of [Yahweasel's Craig](https://github.com/Yahweasel/craig), as the recording process is pretty much the
+same, and the "cooking" process is just a straight copy. Initially, I just needed to add some workflow changes to Craig,
+but plain Javascript wasn't that convenient to work with, and I ended up refactoring the whole thing, cherry picking
 the functionalities I wanted.
 
 Pandora can be regarded as a simplified version of Craig, intended to be used to record a single voice channel at a time.
@@ -89,21 +89,17 @@ The main Dockerfile is using Alpine Linux. Although I love Alpine, it gets a bit
 twice as large, is included to check if Alpine is playing tricks on us. 
 
 ### Natively
-Running the bot natively is a bit trickier, but not that difficult. 
 
-#### Direct dependencies and transpilation
-
+First, install of the required dependencies. On a side-note, **FFMPEG must be installed**.
 ```bash
 # nodejs and npm must of course be installed
 npm install
 # Transpile Typescript into Javascript
 npm run build
 ```
+Next, copy `.env.example` into `.env.` Refer to the [configuration step](#configuration) to fill the values in. 
 
-### Running the Bot
-
-Copy .env.example into .env. Refer to the [configuration step](#configuration) to fill the values. 
-When this is done, the fastest way to get the bot running is:
+Finally, the fastest way to get the bot running is:
    
     npm run start:dev
     
@@ -125,8 +121,6 @@ npm install dotenv-safe
 node -r dotenv-safe/config main.js
 ```
 With this, Pandora should be up and running ! 
-
-If you've read all this, congratulations. Now, seriously, just use Docker. 
 
 ## Configuration
 
