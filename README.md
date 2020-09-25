@@ -1,12 +1,17 @@
 # Pandora: Discord recorder
 
 Pandora is a multi-track Discord voice recorder written in Typescript. This project should actually be considered as a kind-of a fork of
-[Yahweasel's Pandora](https://github.com/Yahweasel/craig) as the recording process is itself pretty much the same, and the
+[Yahweasel's Craig](https://github.com/Yahweasel/craig) as the recording process is itself pretty much the same, and the
 "cooking" process is just a straight copy. Initially, I just needed to add some workflow changes to Pandora, but plain
 Javascript wasn't that easy to work with, and I ended up refactoring the whole thing, cherry picking
 the functionalities I wanted.
 
-Pandora can be regarded as a simplified version of Pandora, intended to be used to record a single voice channel at a time.
+Pandora can be regarded as a simplified version of Craig, intended to be used to record a single voice channel at a time.
+
+This is just the **recording** part, storing raw data. The cooking part, processing the data into an audio file 
+(or zip file with multiple tracks) can be found [here](cookingLol). The two projects are separated to allow for 
+some sort of "horizontal scaling". One cooking server can be used with multiples bots (or multiple shards). The number
+of cooking server required can then be increased along with the load (if you're into that).
 
 ## Usage
 
@@ -58,6 +63,7 @@ Using Docker to run the bot is the recommended (and easy) way.
 ```bash
 # Either pull the bot from the GitHub registry (requiring login for some reason)
 docker login docker.pkg.github.com --username <YOUR_USERNAME>
+# The image is 214Mb 
 docker pull docker.pkg.github.com/sotrx/pandora/pandora:latest
 
 # OR build it yourself (from the project's root)
@@ -77,48 +83,18 @@ docker run \
 Refer to the [configuration](#configuration) for an explanation of the environment variables.
 The bot should be up and running !
 
-#### Why not Alpine ? 
-Alpine is lacking some unix tools and would require a custom ffmpeg build to run all the possible configuration of the
-cooking process. The extra gain in space is not worth going through that.  
+#### Why two Dockerfiles ? 
+The main Dockerfile is using Alpine Linux. Although I love Alpine, it gets a bit dicey when using it with audio/video
+(especially FFMPEG). Although it *seems* to run as expected, weird bugs can occurs, and the Ubuntu Docker variant, although
+twice as large, is included to check if Alpine is playing tricks on us. 
 
 ### Natively
-Running the bot natively is a bit trickier, but not that difficult. Using Docker is a better way still. 
-
-#### Requirements
-
-The requirements are the same as Pandora's. 
-You'll need all these installed : 
-+ ffmpeg ( http://ffmpeg.org/ ) compiled with libopus support
-+ flac ( https://xiph.org/flac/ )
-+ oggenc ( https://xiph.org/vorbis/ )
-+ opusenc ( http://opus-codec.org/ )
-+ fdkaac ( https://github.com/nu774/fdkaac )
-+ zip and unzip ( http://infozip.org/ )
-
-Quick install command: 
-```bash
-# Debian-based distros
-sudo apt install ffmpeg flac vorbis-tools zip fdkaac
-# Red-Hat based distros (Yes there is really an extra hyphen)
-sudo dnf install ffmpeg flac vorbis-tools zip fdk-aac
-# Windows
-(Use Docker, the cooking script is a pure Bash script, you won't be able to run it anyway) 
-```
-
-Next, all the cooking scripts needs to be compiled. Beware, you will need GCC/make/autoconf
-(and maybe more depending on the distro).
-```bash
-# From the project's root
-cd cook
-for i in \*.c; do gcc -O3 -o ${i%.c} $i; done
-cd windows; make
-cd macosx; make
-```
+Running the bot natively is a bit trickier, but not that difficult. 
 
 #### Direct dependencies and transpilation
 
 ```bash
-# nodejs and npm must be installed
+# nodejs and npm must of course be installed
 npm install
 # Transpile Typescript into Javascript
 npm run build
@@ -127,11 +103,11 @@ npm run build
 ### Running the Bot
 
 Copy .env.example into .env. Refer to the [configuration step](#configuration) to fill the values. 
-When this is done, the quickest way to get the bot running is to run:
+When this is done, the fastest way to get the bot running is:
    
     npm run start:dev
     
-However, this is not the best way to run it in a production environment. 
+However, this is not the best way to do it in a production environment. 
 
 A cleaner way would be to copy the **dist** directory, containing the transpiled Javascript, into another location and
 only install the production dependencies (This is what the Dockerfile do).
@@ -169,6 +145,7 @@ You could start a recording via Redis and end it via a discord command (Why tho 
 ## Roadmap
 
 + Replace node-opus by discordjs/opus
++ Remove Eris library modifications.
 
 
 
