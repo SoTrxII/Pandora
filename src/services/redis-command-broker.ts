@@ -49,14 +49,17 @@ export class RedisCommandBroker implements IRedisCommandBroker {
   private async startRecording(message: RedisMessage): Promise<void> {
     let hasError = false;
     const voiceChannelId = message.data.voiceChannelId;
+    let recordId;
     try {
       const channel = this.client.getChannel(voiceChannelId);
-      await this.audioRecorder.startRecording(channel as VoiceChannel);
+      recordId = await this.audioRecorder.startRecording(
+        channel as VoiceChannel
+      );
     } catch (e) {
       hasError = true;
     }
     const returnPayload: RedisMessage = {
-      data: null,
+      data: { recordId: recordId },
       hasError: hasError,
     };
     this.redis.publish(PubChannels.RecordingBegan, returnPayload);

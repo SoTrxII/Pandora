@@ -21,7 +21,9 @@ export class StartRecording implements ICommand {
       return;
     }
     const channel = client.getChannel(voiceChannelId);
-    await this.audioRecorder.startRecording(channel as VoiceChannel);
-    return Promise.resolve(undefined);
+    const recordId = await this.audioRecorder.startRecording(
+      channel as VoiceChannel
+    );
+    await m.reply(`Starting record with id : ${recordId}`);
   }
 }

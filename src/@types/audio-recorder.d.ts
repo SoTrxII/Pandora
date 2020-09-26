@@ -1,7 +1,7 @@
 import { VoiceChannel } from "eris";
 
 export interface IRecorderService {
-  startRecording(voiceChannel: VoiceChannel);
+  startRecording(voiceChannel: VoiceChannel): Promise<string>;
   stopRecording();
 }
 

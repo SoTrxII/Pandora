@@ -95,7 +95,7 @@ export class AudioRecorder implements IRecorderService {
     oggStream.push(null);
   }
 
-  async startRecording(voiceChannel: VoiceChannel) {
+  async startRecording(voiceChannel: VoiceChannel): Promise<string> {
     const recordId = String(~~(Math.random() * 1000000000));
     this.startTime = hrtime();
     this.voiceChannel = voiceChannel;
@@ -113,6 +113,7 @@ export class AudioRecorder implements IRecorderService {
       AudioRecorder.PING_INTERVAL
     );
     this.voiceReceiver.on("data", (c, u, t) => this.adaptChunk(c, u, t));
+    return recordId;
   }
 
   /**
