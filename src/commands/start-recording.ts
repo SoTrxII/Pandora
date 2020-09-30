@@ -3,6 +3,7 @@ import { Client, Message, VoiceChannel } from "eris";
 import { inject, injectable } from "inversify";
 import { TYPES } from "../types";
 import { IRecorderService } from "../@types/audio-recorder";
+import {InvalidRecorderStateError} from "../services/audio-recorder";
 
 @injectable()
 export class StartRecording implements ICommand {
@@ -21,9 +22,17 @@ export class StartRecording implements ICommand {
       return;
     }
     const channel = client.getChannel(voiceChannelId);
-    const recordId = await this.audioRecorder.startRecording(
-      channel as VoiceChannel
-    );
-    await m.reply(`Starting record with id : ${recordId}`);
+    try{
+      const recordId = await this.audioRecorder.startRecording(
+          channel as VoiceChannel
+      );
+      await m.reply(`Starting record with id : ${recordId}`);
+    }catch (e){
+      if( e instanceof InvalidRecorderStateError){
+        await m.reply(`I'm already recording !`);
+      }
+    }
+
+
   }
 }

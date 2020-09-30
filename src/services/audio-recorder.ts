@@ -14,9 +14,11 @@ import { Readable } from "stream";
 import { resolve } from "path";
 import Timeout = NodeJS.Timeout;
 
+export class InvalidRecorderStateError extends Error {}
 @injectable()
 export class AudioRecorder implements IRecorderService {
   private static readonly MAX_PACKETS_QUEUE_LENGTH = 16;
+  private isRecording = false;
   private voiceChannel: VoiceChannel;
   private voiceConnection: VoiceConnection;
   private voiceReceiver: VoiceDataStream;
@@ -56,16 +58,18 @@ export class AudioRecorder implements IRecorderService {
   ) {}
 
   private async joinVoiceChannel(): Promise<VoiceConnection> {
-    //I don't know if this has an effect ?
     //@ts-ignore
     return this.voiceChannel.join({ opusOnly: true });
   }
+
   stopRecording() {
+    if (!this.isRecording) throw new InvalidRecorderStateError("Not recording");
     clearInterval(this.pingProcess);
     this.voiceReceiver.off("data", this.adaptChunk);
     this.voiceChannel.leave();
     this.flushRemainingData();
     this.multiTracksEncoder.closeStreams();
+    this.isRecording = false;
   }
 
   private flushRemainingData() {
@@ -100,6 +104,9 @@ export class AudioRecorder implements IRecorderService {
   }
 
   async startRecording(voiceChannel: VoiceChannel): Promise<string> {
+    if (this.isRecording)
+      throw new InvalidRecorderStateError("Already recording");
+    this.isRecording = true;
     const recordId = String(~~(Math.random() * 1000000000));
     this.startTime = hrtime();
     this.voiceChannel = voiceChannel;
