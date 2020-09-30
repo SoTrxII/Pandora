@@ -18,6 +18,7 @@ export class StopRecording implements ICommand {
   ): Promise<void> {
     try {
       this.audioRecorder.stopRecording();
+      client.editStatus("online", null);
     } catch (e) {
       if (e instanceof InvalidRecorderStateError) {
         await m.reply(`But I'm not recording !`);
