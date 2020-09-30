@@ -89,10 +89,14 @@ export class AudioRecorder implements IRecorderService {
    * Periodically pings the voice connection to make sure it's alive
    */
   private heartbeat() {
-    const oggStream = new Readable();
-    this.voiceConnection.play(oggStream, { format: "ogg" });
-    oggStream.push(AudioRecorder.SILENT_OGG_OPUS);
-    oggStream.push(null);
+    try {
+      const oggStream = new Readable();
+      this.voiceConnection.play(oggStream, { format: "ogg" });
+      oggStream.push(AudioRecorder.SILENT_OGG_OPUS);
+      oggStream.push(null);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async startRecording(voiceChannel: VoiceChannel): Promise<string> {
