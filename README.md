@@ -62,6 +62,42 @@ redis.publish("stopRecordingDiscord", {
 
 The acknowledgment will be sent on the channel `recordingDiscordStopped`.
 
+## Using Pandora and the cooking server together
+
+Pandora's records are stored in the `rec` directory. The cooking server is also looking for
+records in its own `rec` directory.
+The simplest way to share these directories is by using a **Docker volume**.
+
+Here is an example Docker-compose configuration using both projects Docker images :
+
+```yaml
+version: "3.7"
+services:
+  pandora:
+    image: docker.pkg.github.com/sotrx/pandora/pandora:latest
+    container_name: pandora
+    restart: always
+    environment:
+      - PANDORA_TOKEN=<DISCORD_TOKEN>
+      - COMMAND_PREFIX=.
+      - USE_REDIS_INTERFACE=0
+      - USE_COMMAND_INTERFACE=1
+      - REDIS_HOST=<REDIS_HOST>
+    volumes:
+      - pandora_recordings:/rec
+
+  pandora-cooking-server:
+    image: docker.pkg.github.com/sotrx/pandora-cooking-server/pandora-cooking-server:latest
+    container_name: pandora-cooking-server
+    restart: always
+    volumes:
+      - pandora_recordings:/app/rec
+volumes:
+  pandora_recordings:
+```
+
+Of course many other ways exists.
+ 
 ## Installation
 
 ### Docker
@@ -145,12 +181,12 @@ Pandora uses 5 environment variables to control its runtime behaviour.
 - USE_REDIS_INTERFACE : Either "1" or "O" (Boolean). When enabled ("1") the bot will attempt to connect to the REDIS_HOST and listen to the command.
 - REDIS_HOST : Redis DB URL.
 
-If USE_REDIS_INTERFACE is "0", set REDIS_HOST will default to localhost and can be omitted. 
+If USE_REDIS_INTERFACE is "0", set REDIS_HOST will default to localhost and can be omitted.
 (Except if you're using **dotenv-safe**, it won't be happy if you omit a value. In this case, you can set REDIS_HOST to
- whatever you want, it won't be used)
- 
-Both USE_COMMAND_INTERFACE and USE_COMMAND_INTERFACE can be enabled at the same time. 
-The audio recording module is in a Singleton scope. This means you could theoretically start a recording 
+whatever you want, it won't be used)
+
+Both USE_COMMAND_INTERFACE and USE_COMMAND_INTERFACE can be enabled at the same time.
+The audio recording module is in a Singleton scope. This means you could theoretically start a recording
 via Redis and end it via a discord command (Why tho ?).
 
 ## Roadmap
