@@ -52,10 +52,12 @@ export class RedisCommandBroker implements IRedisCommandBroker {
     let recordId;
     try {
       const channel = this.client.getChannel(voiceChannelId);
+      if(!channel) throw new Error("No channel found");
       recordId = await this.audioRecorder.startRecording(
         channel as VoiceChannel
       );
     } catch (e) {
+      console.error(e);
       hasError = true;
     }
     const returnPayload: RedisMessage = {

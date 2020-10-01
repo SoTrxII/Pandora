@@ -29,12 +29,12 @@ export class Pandora {
     return m.content.startsWith(this.config.commandPrefix);
   }
 
-  private isAuthorCraig(m: Message): boolean {
+  private isAuthorPandora(m: Message): boolean {
     return m.author.id === this.client.user.id;
   }
 
   async matchCommand(m: Message) {
-    if (!this.isAuthorCraig(m) && this.isCommand(m)) {
+    if (!this.isAuthorPandora(m) && this.isCommand(m)) {
       try {
         m.content = m.content.substring(this.config.commandPrefix.length);
         await this.commandMatcher.execute(m, this.client);
