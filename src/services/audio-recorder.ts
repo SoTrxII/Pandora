@@ -69,7 +69,24 @@ export class AudioRecorder implements IRecorderService {
     this.voiceChannel.leave();
     this.flushRemainingData();
     this.multiTracksEncoder.closeStreams();
+    this.resetToBlankState();
     this.isRecording = false;
+  }
+
+  /**
+   * As the audio recorder is a singleton, we need to clean all the variables up
+   * before the next recording session.
+   */
+  private resetToBlankState(): void {
+    this.voiceChannel = undefined;
+    this.voiceConnection = undefined;
+    this.voiceReceiver = undefined;
+    this.startTime = undefined;
+    this.users.clear();
+    this.trackNo = 1;
+    this.userTrackNos.clear();
+    this.userPacketNos.clear();
+    this.userPacketNos.clear();
   }
 
   private flushRemainingData() {
