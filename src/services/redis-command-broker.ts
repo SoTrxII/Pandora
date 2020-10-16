@@ -52,7 +52,7 @@ export class RedisCommandBroker implements IRedisCommandBroker {
     let recordId;
     try {
       const channel = this.client.getChannel(voiceChannelId);
-      if(!channel) throw new Error("No channel found");
+      if (!channel) throw new Error("No channel found");
       recordId = await this.audioRecorder.startRecording(
         channel as VoiceChannel
       );
@@ -69,13 +69,14 @@ export class RedisCommandBroker implements IRedisCommandBroker {
 
   private async stopRecording(message: RedisMessage): Promise<void> {
     let hasError = false;
+    let startDate;
     try {
-      await this.audioRecorder.stopRecording();
+      startDate = await this.audioRecorder.stopRecording();
     } catch (e) {
       hasError = true;
     }
     const returnPayload: RedisMessage = {
-      data: null,
+      data: { startDate: startDate },
       hasError: hasError,
     };
     this.redis.publish(PubChannels.RecordingStopped, returnPayload);

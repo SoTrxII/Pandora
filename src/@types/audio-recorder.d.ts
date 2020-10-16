@@ -1,8 +1,10 @@
 import { VoiceChannel } from "eris";
 
+type AccurateTime = [number, number];
+
 export interface IRecorderService {
   startRecording(voiceChannel: VoiceChannel): Promise<string>;
-  stopRecording();
+  stopRecording(): AccurateTime;
 }
 
 export interface Chunk extends Buffer {

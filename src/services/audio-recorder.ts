@@ -1,11 +1,9 @@
-import { Chunk, IRecorderService } from "../@types/audio-recorder";
 import {
-  Member,
-  User,
-  VoiceChannel,
-  VoiceConnection,
-  VoiceDataStream,
-} from "eris";
+  AccurateTime,
+  Chunk,
+  IRecorderService,
+} from "../@types/audio-recorder";
+import { User, VoiceChannel, VoiceConnection, VoiceDataStream } from "eris";
 import { hrtime } from "process";
 import { IMultiTracksEncoder } from "../@types/multi-tracks-encoder";
 import { TYPES } from "../types";
@@ -25,7 +23,7 @@ export class AudioRecorder implements IRecorderService {
   // Ping period in ms
   private static readonly PING_INTERVAL = 3000;
   private pingProcess: Timeout;
-  private startTime: [number, number];
+  private startTime: AccurateTime;
   // Active users, by ID
   private users = new Map<string, User>();
   // Our current track number
@@ -58,11 +56,12 @@ export class AudioRecorder implements IRecorderService {
   ) {}
 
   private async joinVoiceChannel(): Promise<VoiceConnection> {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     //@ts-ignore
     return this.voiceChannel.join({ opusOnly: true });
   }
 
-  stopRecording() {
+  stopRecording(): AccurateTime {
     if (!this.isRecording) throw new InvalidRecorderStateError("Not recording");
     clearInterval(this.pingProcess);
     this.voiceReceiver.off("data", this.adaptChunk);
@@ -71,6 +70,7 @@ export class AudioRecorder implements IRecorderService {
     this.multiTracksEncoder.closeStreams();
     this.resetToBlankState();
     this.isRecording = false;
+    return this.startTime;
   }
 
   /**
