@@ -77,8 +77,10 @@ export class RedisCommandBroker implements IRedisCommandBroker {
     }
     const returnPayload: RedisMessage = {
       data: { startDate: startDate },
-      hasError: hasError,
+      hasError: false,
     };
+    console.log(returnPayload);
+    console.log(JSON.stringify(returnPayload));
     this.redis.publish(PubChannels.RecordingStopped, returnPayload);
   }
 }

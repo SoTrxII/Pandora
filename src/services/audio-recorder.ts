@@ -68,9 +68,10 @@ export class AudioRecorder implements IRecorderService {
     this.voiceChannel.leave();
     this.flushRemainingData();
     this.multiTracksEncoder.closeStreams();
+    const startTime = this.startTime;
     this.resetToBlankState();
     this.isRecording = false;
-    return this.startTime;
+    return startTime;
   }
 
   /**
