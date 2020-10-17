@@ -73,6 +73,7 @@ export class RedisCommandBroker implements IRedisCommandBroker {
     try {
       startDate = await this.audioRecorder.stopRecording();
     } catch (e) {
+      console.warn(e);
       hasError = true;
     }
     const returnPayload: RedisMessage = {

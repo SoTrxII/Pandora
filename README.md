@@ -55,8 +55,7 @@ Example:
 ```ts
 // Create a Redis publisher instance by any means
 redis.publish("stopRecordingDiscord", {
-  hasError: false,
-  data: { voiceChannelId: "<ID of the voice channel to record>" },
+  hasError: false
 });
 ```
 

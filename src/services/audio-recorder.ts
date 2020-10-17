@@ -93,6 +93,7 @@ export class AudioRecorder implements IRecorderService {
   private flushRemainingData() {
     for (const userId of this.userRecentPackets.keys()) {
       const user = this.users.get(userId);
+      if (user === undefined) continue;
       const userTrackNo = this.userTrackNos.get(userId);
       const userRecents = this.userRecentPackets.get(userId);
       const packetNo = this.userPacketNos.get(user.id);
