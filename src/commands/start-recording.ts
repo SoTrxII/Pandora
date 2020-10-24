@@ -18,7 +18,9 @@ export class StartRecording implements ICommand {
   ): Promise<void> {
     const voiceChannelId = m.member.voiceState.channelID;
     if (!voiceChannelId) {
-      m.reply("You must be in a voice channel to resolve this command!");
+      await m.channel.createMessage(
+        `${m.author.mention} You must be in a voice channel to resolve this command!`
+      );
       return;
     }
     const channel = client.getChannel(voiceChannelId);
@@ -30,10 +32,14 @@ export class StartRecording implements ICommand {
         name: `${(channel as VoiceChannel).name}`,
         type: 2,
       });
-      await m.reply(`Starting record with id : ${recordId}`);
+      await m.channel.createMessage(
+        `${m.author.mention} Starting record with id : ${recordId}`
+      );
     } catch (e) {
       if (e instanceof InvalidRecorderStateError) {
-        await m.reply(`I'm already recording !`);
+        await m.channel.createMessage(
+          `${m.author.mention} I'm already recording !`
+        );
       }
     }
   }

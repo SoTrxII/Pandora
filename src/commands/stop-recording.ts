@@ -21,7 +21,9 @@ export class StopRecording implements ICommand {
       client.editStatus("online", null);
     } catch (e) {
       if (e instanceof InvalidRecorderStateError) {
-        await m.reply(`But I'm not recording !`);
+        await m.channel.createMessage(
+          `${m.author.mention} But I'm not recording`
+        );
       }
     }
   }

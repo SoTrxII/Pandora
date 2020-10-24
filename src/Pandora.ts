@@ -1,10 +1,8 @@
 import { injectable } from "inversify";
 import * as Eris from "eris";
-import "./utils/eris-custom";
 import { IPandoraConfig } from "./@types/pandora";
 import { Message } from "eris";
 import { ICommandMatcher } from "./@types/command-matcher";
-import { IRedis } from "./@types/redis";
 import { IRedisCommandBroker } from "./@types/redis-command-broker";
 
 @injectable()

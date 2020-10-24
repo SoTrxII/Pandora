@@ -133,7 +133,6 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     const chunkGranule = chunk.time;
     // TODO : Check if this is actually used, it seems to be never called
     if (this.hasRTPHeader(chunk)) chunk = this.stripRTPHeader(chunk);
-    //TODO : Check if custom attributes are kept after stripping (they should)
     if (packetNo % 50 === 49) {
       try {
         this.opus.decode(chunk, OpusMultiTracksEncoder.DISCORD_FRAME_SIZE);
@@ -203,7 +202,6 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     if (off >= chunk.length) off = chunk.length;
 
     const nChunk = chunk.slice(off) as Chunk;
-    console.log(nChunk.time);
     return nChunk;
   }
 
