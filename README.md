@@ -188,7 +188,3 @@ Both USE_COMMAND_INTERFACE and USE_COMMAND_INTERFACE can be enabled at the same 
 The audio recording module is in a Singleton scope. This means you could theoretically start a recording
 via Redis and end it via a discord command (Why tho ?).
 
-## Roadmap
-
-- Replace node-opus by discordjs/opus
-- Remove Eris library modifications.
