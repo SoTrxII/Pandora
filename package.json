@@ -3,6 +3,17 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "ISC",
+  "keywords": [
+    "node",
+    "nodejs",
+    "docker",
+    "recording",
+    "discord",
+    "discordjs",
+    "typescript",
+    "docker-compose",
+    "bot"
+  ],
   "scripts": {
     "pretest": "./node_modules/.bin/jest --clearCache",
     "test": "./node_modules/.bin/jest",
