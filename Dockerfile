@@ -2,8 +2,7 @@
 FROM node:current-alpine as build
 WORKDIR /app
 COPY package.json /app/
-RUN apk add alpine-sdk git python \
-    && npm config set update-notifier false \
+RUN apk add alpine-sdk git python bash \
     && npm install
 
 COPY . /app/
@@ -12,9 +11,8 @@ RUN npm run build
 FROM node:current-alpine as prod
 WORKDIR /app
 COPY --from=build /app/dist /app
-RUN apk add --no-cache --virtual=.build-deps alpine-sdk git python \
+RUN apk add --no-cache --virtual=.build-deps alpine-sdk git python bash \
     && apk add --no-cache ffmpeg \
-    && npm config set update-notifier false \
     && npm install -g pm2 modclean \
     && npm install --only=prod \
     && modclean -r \
