@@ -4,7 +4,7 @@ import { Writable } from "stream";
 import { OggEncoder } from "./ogg-encoder";
 import { User } from "eris";
 import { Chunk } from "../@types/audio-recorder";
-import { OpusEncoder } from "node-opus";
+import { OpusEncoder } from "@discordjs/opus";
 import {
   IMultiTracksEncoder,
   IRecordingDetails,
@@ -16,6 +16,7 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
   private static BASE_STORAGE_DIR = resolve(__dirname, `../../rec`);
   private static readonly DISCORD_RATE = 48000;
   private static readonly DISCORD_FRAME_SIZE = 960;
+  private static readonly DISCORD_CHANNEL_NUMBER = 2;
   // A precomputed Opus header, made by node-opus
   // prettier-ignore
   private static readonly OPUS_HEADER = [
@@ -37,7 +38,10 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
   // File Users Stream
   private fUStream: Writable;
 
-  private opus = new OpusEncoder(OpusMultiTracksEncoder.DISCORD_RATE);
+  private opus = new OpusEncoder(
+    OpusMultiTracksEncoder.DISCORD_RATE,
+    OpusMultiTracksEncoder.DISCORD_CHANNEL_NUMBER
+  );
 
   private assertStorageDirCreated() {
     if (!existsSync(OpusMultiTracksEncoder.BASE_STORAGE_DIR))
@@ -135,7 +139,7 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     if (this.hasRTPHeader(chunk)) chunk = this.stripRTPHeader(chunk);
     if (packetNo % 50 === 49) {
       try {
-        this.opus.decode(chunk, OpusMultiTracksEncoder.DISCORD_FRAME_SIZE);
+        this.opus.decode(chunk);
       } catch (e) {
         console.error(e);
       }
@@ -164,7 +168,7 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     packetNo: number
   ): number {
     for (let i = 0; i < ct; i++) {
-      let chunk = queue.shift();
+      const chunk = queue.shift();
       try {
         this.encodeChunk(user, streamNo, packetNo, chunk);
         packetNo += 2;
