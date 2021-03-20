@@ -20,8 +20,6 @@ database to begin/end the recording. This second way of inputting commands is us
 triggering the recording (such as another bot, or a web service). You can choose one way (or both) in the
 [configuration section](#configuration).
 
-Be aware that **the Redis part is experimental** and I'm still tinkering with it.
-
 ### Commands
 
 ```bash
