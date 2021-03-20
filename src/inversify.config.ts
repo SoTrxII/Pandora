@@ -29,7 +29,7 @@ container
 container.bind<ICommandMatcher>(TYPES.CommandMatcher).to(CommandMatcher);
 
 // Only use the actual Redis implementation if it's actually required.
-if (Boolean(process.env.USE_REDIS_INTERFACE)) {
+if (Boolean(Number(process.env.USE_REDIS_INTERFACE))) {
   container.bind<IRedis>(TYPES.RedisService).toConstantValue(
     new RedisService({
       host: process.env.REDIS_HOST,
@@ -46,7 +46,8 @@ if (Boolean(process.env.USE_REDIS_INTERFACE)) {
 }
 container
   .bind<IRedisCommandBroker>(TYPES.RedisCommandBroker)
-  .to(RedisCommandBroker);
+  .to(RedisCommandBroker)
+  .inSingletonScope();
 
 // Register all commands
 container.bind<ICommand>(TYPES.Command).to(StartRecording);

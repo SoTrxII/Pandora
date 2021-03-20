@@ -33,6 +33,14 @@ export class RedisCommandBroker implements IRedisCommandBroker {
     this.redis.on("message", (e) => this.messageBroker(e[0], JSON.parse(e[1])));
   }
 
+  sendRecordingBeganEvent(payload?: RedisMessage): void {
+    this.redis.publish(PubChannels.RecordingBegan, payload);
+  }
+
+  sendRecordingStoppedEvent(payload?: RedisMessage): void {
+    this.redis.publish(PubChannels.RecordingStopped, payload);
+  }
+
   private async messageBroker(channel: string, message: RedisMessage) {
     switch (channel) {
       case SubChannels.StartRecording:
@@ -64,7 +72,7 @@ export class RedisCommandBroker implements IRedisCommandBroker {
       data: { recordId: recordId },
       hasError: hasError,
     };
-    this.redis.publish(PubChannels.RecordingBegan, returnPayload);
+    this.sendRecordingBeganEvent(returnPayload);
   }
 
   private async stopRecording(message: RedisMessage): Promise<void> {
@@ -82,6 +90,6 @@ export class RedisCommandBroker implements IRedisCommandBroker {
     };
     console.log(returnPayload);
     console.log(JSON.stringify(returnPayload));
-    this.redis.publish(PubChannels.RecordingStopped, returnPayload);
+    this.sendRecordingStoppedEvent(returnPayload);
   }
 }

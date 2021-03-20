@@ -4,12 +4,14 @@ import { inject, injectable } from "inversify";
 import { TYPES } from "../types";
 import { IRecorderService } from "../@types/audio-recorder";
 import { InvalidRecorderStateError } from "../services/audio-recorder";
+import { IRedisCommandBroker } from "../@types/redis-command-broker";
 
 @injectable()
 export class StopRecording implements ICommand {
   trigger = "end";
   constructor(
-    @inject(TYPES.AudioRecorder) private audioRecorder: IRecorderService
+    @inject(TYPES.AudioRecorder) private audioRecorder: IRecorderService,
+    @inject(TYPES.RedisCommandBroker) private redis: IRedisCommandBroker
   ) {}
   async run(
     m: Message,
@@ -17,7 +19,11 @@ export class StopRecording implements ICommand {
     args: (string | number)[]
   ): Promise<void> {
     try {
-      this.audioRecorder.stopRecording();
+      const startDate = this.audioRecorder.stopRecording();
+      this.redis?.sendRecordingStoppedEvent({
+        data: { startDate: startDate },
+        hasError: false,
+      });
       client.editStatus("online", null);
     } catch (e) {
       if (e instanceof InvalidRecorderStateError) {
