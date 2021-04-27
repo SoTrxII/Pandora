@@ -1,8 +1,8 @@
 build:
-  image: docker
+  image: docker:19.03.11
   stage: build
   services:
-    - docker:dind
+    - docker:19.03.11-dind
   variables:
     IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   script:

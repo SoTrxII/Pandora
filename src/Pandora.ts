@@ -1,7 +1,7 @@
 import { injectable } from "inversify";
 import * as Eris from "eris";
 import { IPandoraConfig } from "./@types/pandora";
-import { Message } from "eris";
+import { Message, PossiblyUncachedTextableChannel } from "eris";
 import { ICommandMatcher } from "./@types/command-matcher";
 import { IRedisCommandBroker } from "./@types/redis-command-broker";
 import { container } from "./inversify.config";
@@ -45,15 +45,17 @@ export class Pandora {
     }
   }
 
-  private isCommand(m: Message): boolean {
+  private isCommand(m: Message<PossiblyUncachedTextableChannel>): boolean {
     return m.content.startsWith(this.config.commandPrefix);
   }
 
-  private isAuthorPandora(m: Message): boolean {
+  private isAuthorPandora(
+    m: Message<PossiblyUncachedTextableChannel>
+  ): boolean {
     return m.author.id === this.client.user.id;
   }
 
-  async matchCommand(m: Message) {
+  async matchCommand(m: Message<PossiblyUncachedTextableChannel>) {
     if (!this.isAuthorPandora(m) && this.isCommand(m)) {
       try {
         m.content = m.content.substring(this.config.commandPrefix.length);
