@@ -16,6 +16,7 @@ export enum SubChannels {
 export enum PubChannels {
   RecordingBegan = "recordingDiscordBegan",
   RecordingStopped = "recordingDiscordStopped",
+  RecordingErrored = "recordingDiscordErrored",
 }
 
 @injectable()
@@ -39,6 +40,10 @@ export class RedisCommandBroker implements IRedisCommandBroker {
 
   sendRecordingStoppedEvent(payload?: RedisMessage): void {
     this.redis.publish(PubChannels.RecordingStopped, payload);
+  }
+
+  sendRecordingErrorEvent(payload?: RedisMessage): void {
+    this.redis.publish(PubChannels.RecordingErrored, payload);
   }
 
   private async messageBroker(channel: string, message: RedisMessage) {

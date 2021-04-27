@@ -74,6 +74,10 @@ export class AudioRecorder implements IRecorderService {
     return startTime;
   }
 
+  getStartTime(): AccurateTime {
+    return this.startTime;
+  }
+
   /**
    * As the audio recorder is a singleton, we need to clean all the variables up
    * before the next recording session.
