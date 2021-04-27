@@ -3,6 +3,8 @@ FROM node:current-alpine as build
 WORKDIR /app
 COPY package.json /app/
 RUN apk add alpine-sdk git python2 bash \
+    && npm install -g npm \
+    && npm install -g node-gyp \
     && npm install
 
 COPY . /app/
