@@ -23,26 +23,32 @@ export class Pandora {
 
     if (this.config.useRedis) this.redisBroker.startListening(this.client);
     this.client.on("connect", () => console.log("Up & Ready"));
+    this.client.on("error", (err, id) => this.handleConnectionError(err, id));
     try {
       await this.client.connect();
     } catch (e) {
-      // Signal the listening process that an error has occurred and
-      // let Pandora reboot
-      if (e.message.includes("reset by peer")) {
-        // As the audio recorder is a singleton, we can still get the initial record start time
-        // I'm not really fond of this service locator anti-pattern
-        // but this is an error case, so, hey, I've got an excuse
-        const startTime = container
-          .get<IRecorderService>(TYPES.AudioRecorder)
-          .getStartTime();
-
-        this.redisBroker.sendRecordingErrorEvent({
-          hasError: true,
-          data: { message: e.message, startTime: startTime },
-        });
-      }
-      throw e;
+      console.error(e);
     }
+  }
+
+  private handleConnectionError(e: Error, id: number): never {
+    // Signal the listening process that an error has occurred and
+    // let Pandora reboot
+    if (e.message.includes("reset by peer")) {
+      // As the audio recorder is a singleton, we can still get the initial record start time
+      // I'm not really fond of this service locator anti-pattern
+      // but this is an error case, so, hey, I've got an excuse
+      const startTime = container
+        .get<IRecorderService>(TYPES.AudioRecorder)
+        .getStartTime();
+
+      this.redisBroker.sendRecordingErrorEvent({
+        hasError: true,
+        data: { message: e.message, startTime: startTime },
+      });
+    }
+    // Let pm2 reboot pandora
+    throw e;
   }
 
   private isCommand(m: Message<PossiblyUncachedTextableChannel>): boolean {
