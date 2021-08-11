@@ -22,18 +22,17 @@ export class Pandora {
       this.client.on("messageCreate", (m) => this.matchCommand(m));
 
     if (this.config.useRedis) this.redisBroker.startListening(this.client);
-    this.client.on("connect", () => console.log("Up & Ready"));
+    this.client.on("connect", () => {
+      console.log("Up & Ready");
+    });
     this.client.on("error", (err, id) => this.handleConnectionError(err, id));
-    try {
-      await this.client.connect();
-    } catch (e) {
-      console.error(e);
-    }
+    await this.client.connect();
   }
 
   private handleConnectionError(e: Error, id: number): never {
     // Signal the listening process that an error has occurred and
     // let Pandora reboot
+    console.error(e);
     if (e.message.includes("reset by peer")) {
       // As the audio recorder is a singleton, we can still get the initial record start time
       // I'm not really fond of this service locator anti-pattern
@@ -48,7 +47,7 @@ export class Pandora {
       });
     }
     // Let pm2 reboot pandora
-    throw e;
+    process.exit(-1);
   }
 
   private isCommand(m: Message<PossiblyUncachedTextableChannel>): boolean {
