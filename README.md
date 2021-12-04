@@ -71,7 +71,7 @@ Here is an example Docker-compose configuration using both projects Docker image
 version: "3.7"
 services:
   pandora:
-    image: docker.pkg.github.com/sotrx/pandora/pandora:latest
+    image: ghcr.io/sotrxii/pandora/pandora:latest
     container_name: pandora
     restart: always
     environment:
@@ -84,7 +84,7 @@ services:
       - pandora_recordings:/rec
 
   pandora-cooking-server:
-    image: docker.pkg.github.com/sotrx/pandora-cooking-server/pandora-cooking-server:latest
+    image: ghcr.io/sotrxii/pandora-cooking-server/pandora-cooking-server:latest
     container_name: pandora-cooking-server
     restart: always
     volumes:
@@ -103,12 +103,12 @@ Using Docker to run the bot is the recommended (and easy) way.
 
 ```bash
 # Either pull the bot from the GitHub registry (requiring login for some reason)
-docker login docker.pkg.github.com --username <YOUR_USERNAME>
+docker login ghcr.io --username <YOUR_USERNAME>
 # The image is 214Mb
-docker pull docker.pkg.github.com/sotrx/pandora/pandora:latest
+docker pull ghcr.io/sotrxii/pandora/pandora:latest
 
 # OR build it yourself (from the project's root)
-docker build -t docker.pkg.github.com/sotrx/pandora/pandora:latest
+docker build -t ghcr.io/sotrxii/pandora/pandora:latest
 ```
 
 Once the image is pulled/built, run it:
@@ -120,7 +120,7 @@ docker run \
 -e COMMAND_PREFIX="." \
 -e PANDORA_TOKEN="<DISCORD_BOT_TOKEN>" \
 -e REDIS_HOST="<REDIS_DB_URL>" \
--it docker.pkg.github.com/sotrx/pandora/pandora:latest
+-it ghcr.io/sotrxii/pandora/pandora:latest
 ```
 
 Refer to the [configuration](#configuration) for an explanation of the environment variables.
