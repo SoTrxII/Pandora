@@ -53,7 +53,7 @@ Example:
 ```ts
 // Create a Redis publisher instance by any means
 redis.publish("stopRecordingDiscord", {
-  hasError: false
+  hasError: false,
 });
 ```
 
@@ -94,7 +94,7 @@ volumes:
 ```
 
 Of course many other ways exists.
- 
+
 ## Installation
 
 ### Docker
@@ -185,4 +185,3 @@ whatever you want, it won't be used)
 Both USE_COMMAND_INTERFACE and USE_COMMAND_INTERFACE can be enabled at the same time.
 The audio recording module is in a Singleton scope. This means you could theoretically start a recording
 via Redis and end it via a discord command (Why tho ?).
-
