@@ -1,22 +1,39 @@
 import { Container } from "inversify";
 import { TYPES } from "./types";
-import { IRecorderService } from "./@types/audio-recorder";
-import { AudioRecorder } from "./services/audio-recorder";
-import { OpusMultiTracksEncoder } from "./components/opus-multi-tracks-encoder";
-import { IMultiTracksEncoder } from "./@types/multi-tracks-encoder";
+import { IRecorderService } from "./pkg/audio-recorder/audio-recorder-api";
+import { AudioRecorder } from "./pkg/audio-recorder/audio-recorder";
+import { OpusMultiTracksEncoder } from "./internal/opus-encoder/opus-multi-tracks-encoder";
+import { IMultiTracksEncoder } from "./internal/opus-encoder/multi-tracks-encoder";
 import { Pandora } from "./Pandora";
-import { ICommand } from "./@types/command";
-import { ICommandMatcher } from "./@types/command-matcher";
-import { CommandMatcher } from "./services/command-matcher";
-import { StartRecording } from "./commands/start-recording";
-import { StopRecording } from "./commands/stop-recording";
-import { IRedis } from "./@types/redis";
-import { RedisService } from "./components/redis";
-import { RedisMock } from "./services/mock/redis-mock";
-import { IRedisCommandBroker } from "./@types/redis-command-broker";
-import { RedisCommandBroker } from "./services/redis-command-broker";
+import {
+  IController,
+  IUnifiedBotController,
+} from "./pkg/controller/bot-control.types";
+import { PubSubBroker } from "./pkg/controller/methods/pub-sub/pub-sub-broker";
+import { CommandBroker } from "./pkg/controller/methods/commands/command-broker";
+import { BotController } from "./pkg/controller/bot-controller";
+import { DaprClient } from "dapr-client";
+import {
+  IRecordingStore,
+  IStoreProxy,
+} from "./pkg/state-store/state-store.api";
+import { ExternalStore } from "./pkg/state-store/external-store";
+import * as Eris from "eris";
+import { IBotImpl } from "./pkg/controller/methods/commands/command-broker-external-api";
+import { ILogger } from "./pkg/logger/logger-api";
+import { ecsLogger } from "./pkg/logger/logger-ecs";
+import { plainTextLogger } from "./pkg/logger/logger-plain-text";
 
 export const container = new Container();
+
+/**
+ * Logger
+ * Using ECS format in production to allows for an ELK stack to parse them
+ * Using plain text in dev to still have a human-readable format
+ */
+const logger =
+  process.env.NODE_ENV === "production" ? ecsLogger : plainTextLogger;
+container.bind<ILogger>(TYPES.Logger).toConstantValue(logger);
 container
   .bind<IMultiTracksEncoder>(TYPES.MultiTracksEncoder)
   .to(OpusMultiTracksEncoder);
@@ -26,42 +43,67 @@ container
   .to(AudioRecorder)
   .inSingletonScope();
 
-container.bind<ICommandMatcher>(TYPES.CommandMatcher).to(CommandMatcher);
-
-// Only use the actual Redis implementation if it's actually required.
-if (Boolean(Number(process.env.USE_REDIS_INTERFACE))) {
-  container.bind<IRedis>(TYPES.RedisService).toConstantValue(
-    new RedisService({
-      host: process.env.REDIS_HOST,
-      lazyConnect: true,
-    })
-  );
-} else {
-  container.bind<IRedis>(TYPES.RedisService).toConstantValue(
-    new RedisMock({
-      host: process.env.REDIS_HOST,
-      lazyConnect: true,
-    })
-  );
-}
+/** State store */
+container.bind(TYPES.StoreProxy).toConstantValue(new DaprClient().state);
 container
-  .bind<IRedisCommandBroker>(TYPES.RedisCommandBroker)
-  .to(RedisCommandBroker)
-  .inSingletonScope();
+  .bind(TYPES.StateStore)
+  .toConstantValue(
+    new ExternalStore(
+      container.get<IStoreProxy>(TYPES.StoreProxy),
+      process.env.STORE_NAME
+    )
+  );
 
-// Register all commands
-container.bind<ICommand>(TYPES.Command).to(StartRecording);
-container.bind<ICommand>(TYPES.Command).to(StopRecording);
+/** PubSub Interface */
+container
+  .bind<IController>(TYPES.Controller)
+  .toConstantValue(new PubSubBroker(process.env.PUBSUB_NAME));
 
-container.bind<Pandora>(TYPES.Pandora).toConstantValue(
-  new Pandora(
-    container.get<ICommandMatcher>(TYPES.CommandMatcher),
-    container.get<IRedisCommandBroker>(TYPES.RedisCommandBroker),
+/** Eris client */
+container.bind(TYPES.ClientProvider).toProvider((context) => {
+  return () => {
+    return new Promise((res, rej) => {
+      const client = new Eris.Client(process.env.PANDORA_TOKEN);
+      //client.on("error", (e) => console.log(e));
+      //client.on("debug", (d) => console.log(d));
+      if (client.ready) res(client);
+      client.connect();
+      client.on("ready", () => {
+        console.log("Up and running");
+        res(client);
+      });
+      setTimeout(() => {
+        if (client.ready) res(client);
+        else rej();
+      }, 20000);
+    });
+  };
+});
+
+/** Command Interface */
+container.bind<IController>(TYPES.Controller).toDynamicValue((context) => {
+  return new CommandBroker(
+    process.env.COMMAND_PREFIX,
+    context.container.get<() => Promise<IBotImpl>>(TYPES.ClientProvider),
     {
-      token: process.env.PANDORA_TOKEN,
-      commandPrefix: process.env.COMMAND_PREFIX,
-      useCommands: Boolean(Number(process.env.USE_COMMAND_INTERFACE)),
-      useRedis: Boolean(Number(process.env.USE_REDIS_INTERFACE)),
+      start: "record",
+      end: "end",
     }
-  )
-);
+  );
+});
+
+container
+  .bind<IUnifiedBotController>(TYPES.UnifiedController)
+  .to(BotController);
+
+container
+  .bind(TYPES.Pandora)
+  .toConstantValue(
+    new Pandora(
+      container.get<() => Promise<Eris.Client>>(TYPES.ClientProvider),
+      container.get<IUnifiedBotController>(TYPES.UnifiedController),
+      container.get<IRecorderService>(TYPES.AudioRecorder),
+      container.get<IRecordingStore>(TYPES.StateStore),
+      container.get<ILogger>(TYPES.Logger)
+    )
+  );

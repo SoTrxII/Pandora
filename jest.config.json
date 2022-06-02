@@ -1,0 +1,23 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "transform": {
+  "^.+\\.tsx?$": "ts-jest"
+},
+  "testRegex": "^(/__tests__/\\.*|(?:(?!\\.integration\\.).)*(spec|test))\\.[jt]sx?$",
+  "moduleNameMapper": {
+    "#core/(.*)": "<rootDir>/dist/$1"
+},
+  "collectCoverageFrom": [
+  "src/**/*.ts",
+  "!old-src/**/*.ts",
+  "!dist/**/*.js",
+  "!src/**/*.config.ts",
+  "!src/**/*.d.ts",
+  "!src/**/*.integration.ts"
+],
+  "modulePathIgnorePatterns": [
+  "<rootDir>/dist",
+  "<rootDir>/node_modules"
+]
+}

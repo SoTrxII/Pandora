@@ -1,42 +1,30 @@
-import {
-  AccurateTime,
-  Chunk,
-  IRecorderService,
-} from "../@types/audio-recorder";
+import { AccurateTime, Chunk, IRecorderService } from "./audio-recorder-api";
 import { User, VoiceChannel, VoiceConnection, VoiceDataStream } from "eris";
 import { hrtime } from "process";
-import { IMultiTracksEncoder } from "../@types/multi-tracks-encoder";
-import { TYPES } from "../types";
+import { IMultiTracksEncoder } from "../../internal/opus-encoder/multi-tracks-encoder";
+import { TYPES } from "../../types";
 import { inject, injectable } from "inversify";
 import { Readable } from "stream";
 import { resolve } from "path";
+import { access } from "fs/promises";
+import * as EventEmitter from "events";
+import { constants } from "fs";
 import Timeout = NodeJS.Timeout;
 
 export class InvalidRecorderStateError extends Error {}
+
 @injectable()
-export class AudioRecorder implements IRecorderService {
+export class AudioRecorder extends EventEmitter implements IRecorderService {
+  /** Path to a sample sound file */
+  private static readonly SAMPLE_SOUND_PATH = resolve(
+    __dirname,
+    "../../assets/welcome.opus"
+  );
+
   private static readonly MAX_PACKETS_QUEUE_LENGTH = 16;
-  private isRecording = false;
-  private voiceChannel: VoiceChannel;
-  private voiceConnection: VoiceConnection;
-  private voiceReceiver: VoiceDataStream;
+
   // Ping period in ms
   private static readonly PING_INTERVAL = 3000;
-  private pingProcess: Timeout;
-  private startTime: AccurateTime;
-  // Active users, by ID
-  private users = new Map<string, User>();
-  // Our current track number
-  private trackNo = 1;
-  // Track numbers for each active user
-  private userTrackNos = new Map<string, number>();
-  // Packet numbers for each active user
-  private userPacketNos = new Map<string, number>();
-  // Packet numbers for each active user
-  private userRecentPackets = new Map<string, Chunk[]>();
-
-  /* A single silent packet, as an Ogg Opus file, which we can send periodically
-   * as a ping */
   // prettier-ignore
   private static readonly SILENT_OGG_OPUS = Buffer.from([0x4f, 0x67, 0x67, 0x53, 0x00, 0x02, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x88, 0x23, 0x54, 0x9b, 0x00,
@@ -49,16 +37,31 @@ export class AudioRecorder implements IRecorderService {
     0x00, 0x04, 0x18, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x88, 0x23,
     0x54, 0x9b, 0x02, 0x00, 0x00, 0x00, 0x3d, 0xa8, 0x9a, 0x9b, 0x01, 0x03,
     0xf8, 0xff, 0xfe]);
+  private isRecording = false;
+  private voiceChannel: VoiceChannel;
+  private voiceConnection: VoiceConnection;
+  private voiceReceiver: VoiceDataStream;
+  private pingProcess: Timeout;
+  private startTime: AccurateTime;
+  // Active users, by ID
+  private users = new Map<string, User>();
+  // Our current track number
+  private trackNo = 1;
+  // Track numbers for each active user
+  private userTrackNos = new Map<string, number>();
+  // Packet numbers for each active user
+  private userPacketNos = new Map<string, number>();
+
+  /* A single silent packet, as an Ogg Opus file, which we can send periodically
+   * as a ping */
+  // Packet numbers for each active user
+  private userRecentPackets = new Map<string, Chunk[]>();
 
   constructor(
     @inject(TYPES.MultiTracksEncoder)
     private multiTracksEncoder: IMultiTracksEncoder
-  ) {}
-
-  private async joinVoiceChannel(): Promise<VoiceConnection> {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    //@ts-ignore
-    return this.voiceChannel.join({ opusOnly: true });
+  ) {
+    super();
   }
 
   stopRecording(): AccurateTime {
@@ -76,6 +79,47 @@ export class AudioRecorder implements IRecorderService {
 
   getStartTime(): AccurateTime {
     return this.startTime;
+  }
+
+  async startRecording(voiceChannel: VoiceChannel): Promise<string> {
+    if (this.isRecording)
+      throw new InvalidRecorderStateError("Already recording");
+    this.isRecording = true;
+    const recordId = String(~~(Math.random() * 1000000000));
+    this.startTime = hrtime();
+    this.voiceChannel = voiceChannel;
+    const guild = this.voiceChannel.guild;
+    this.multiTracksEncoder.initStreams(recordId, {
+      guild: `${guild.name}#${guild.id}`,
+      channel: `${this.voiceChannel.name}#${this.voiceChannel.id}`,
+    });
+    this.voiceConnection = await this.setupVoiceConnection();
+    this.voiceReceiver = this.voiceConnection.receive("opus");
+    // Keep the voice connection alive
+    this.pingProcess = setInterval(
+      () => this.heartbeat(),
+      AudioRecorder.PING_INTERVAL
+    );
+    this.voiceReceiver.on("data", (c, u, t) => this.adaptChunk(c, u, t));
+    this.voiceConnection.on("error", (err) => this.emit("error", err));
+    return recordId;
+  }
+
+  /**
+   * Joins a voice channel and play a sample audio file.
+   * @throws an access error if the sample audio file is not defined
+   */
+  async setupVoiceConnection(): Promise<VoiceConnection> {
+    const voiceConnection = await this.voiceChannel.join({ opusOnly: true });
+    try {
+      await access(AudioRecorder.SAMPLE_SOUND_PATH, constants.F_OK);
+      voiceConnection.play(AudioRecorder.SAMPLE_SOUND_PATH);
+      voiceConnection.stopPlaying();
+      return voiceConnection;
+    } catch (e) {
+      await this.voiceChannel.leave();
+      throw e;
+    }
   }
 
   /**
@@ -122,32 +166,9 @@ export class AudioRecorder implements IRecorderService {
       oggStream.push(AudioRecorder.SILENT_OGG_OPUS);
       oggStream.push(null);
     } catch (e) {
-      console.error(e);
+      // This isn't an error, just a weird situation
+      this.emit("debug", "An heartbeat failed");
     }
-  }
-
-  async startRecording(voiceChannel: VoiceChannel): Promise<string> {
-    if (this.isRecording)
-      throw new InvalidRecorderStateError("Already recording");
-    this.isRecording = true;
-    const recordId = String(~~(Math.random() * 1000000000));
-    this.startTime = hrtime();
-    this.voiceChannel = voiceChannel;
-    const guild = this.voiceChannel.guild;
-    this.multiTracksEncoder.initStreams(recordId, {
-      guild: `${guild.name}#${guild.id}`,
-      channel: `${this.voiceChannel.name}#${this.voiceChannel.id}`,
-    });
-    this.voiceConnection = await this.joinVoiceChannel();
-    this.voiceConnection.play(resolve(__dirname, "../assets/welcome.opus"));
-    this.voiceConnection.stopPlaying();
-    this.voiceReceiver = this.voiceConnection.receive("opus");
-    this.pingProcess = setInterval(
-      () => this.heartbeat(),
-      AudioRecorder.PING_INTERVAL
-    );
-    this.voiceReceiver.on("data", (c, u, t) => this.adaptChunk(c, u, t));
-    return recordId;
   }
 
   /**
@@ -173,7 +194,6 @@ export class AudioRecorder implements IRecorderService {
     // I don't understand what are 48000 and 20833.333 in this bit
     // 48000 is most certainly Discord audio sampling rate.
     chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
-    //TODO : FEEDBACK INTERVAL (glowing ring when speaking, not that important)
     let userTrackNo: number, userRecents: Chunk[];
     if (!this.users.has(user.id)) {
       this.users.set(user.id, user);

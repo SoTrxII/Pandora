@@ -15,6 +15,10 @@ The number of cooking servers can then be increased along with the workload.
 
 ## Usage
 
+```shell
+dapr init
+```
+
 There are two ways to use Pandora. Either by using commands (as any other Discord Bot), or by using a Redis PubSub
 database to begin/end the recording. This second way of inputting commands is useful when an external process is
 triggering the recording (such as another bot, or a web service). You can choose one way (or both) in the

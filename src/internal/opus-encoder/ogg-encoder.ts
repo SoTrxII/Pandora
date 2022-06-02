@@ -7,13 +7,14 @@ export class OggEncoder {
   public static EOS = 4;
 
   constructor(private fstream: Writable) {}
+
   write(
     granulePos: number,
     streamNo: number,
     packetNo: number,
     chunk: Buffer,
     flags?: number
-  ) {
+  ): void {
     // How many bytes will be required to explain this chunk?
     const lengthBytes = Math.ceil(chunk.length / 255) + 1;
 
@@ -66,7 +67,7 @@ export class OggEncoder {
     this.fstream.write(chunk);
   }
 
-  end() {
+  end(): void {
     this.fstream.end();
   }
 }

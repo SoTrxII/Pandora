@@ -3,12 +3,9 @@ import { createWriteStream, existsSync, mkdirSync } from "fs";
 import { Writable } from "stream";
 import { OggEncoder } from "./ogg-encoder";
 import { User } from "eris";
-import { Chunk } from "../@types/audio-recorder";
+import { Chunk } from "../../pkg/audio-recorder/audio-recorder-api";
 import { OpusEncoder } from "@discordjs/opus";
-import {
-  IMultiTracksEncoder,
-  IRecordingDetails,
-} from "../@types/multi-tracks-encoder";
+import { IMultiTracksEncoder, IRecordingDetails } from "./multi-tracks-encoder";
 import { injectable } from "inversify";
 
 @injectable()
@@ -43,11 +40,6 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     OpusMultiTracksEncoder.DISCORD_CHANNEL_NUMBER
   );
 
-  private assertStorageDirCreated() {
-    if (!existsSync(OpusMultiTracksEncoder.BASE_STORAGE_DIR))
-      mkdirSync(OpusMultiTracksEncoder.BASE_STORAGE_DIR, { recursive: true });
-  }
-
   initStreams(recordId: string, details: IRecordingDetails): void {
     this.assertStorageDirCreated();
     const recordingFullPath = `${OpusMultiTracksEncoder.BASE_STORAGE_DIR}/${recordId}`;
@@ -66,28 +58,6 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     this.fUStream.write('"0":{}\n');
   }
 
-  /**
-   * Write all the stream info into a file. Ths is a later on used in cooking (cook/recinfo.js)
-   */
-  private writeInfoFile(fullPath: string, details: IRecordingDetails): void {
-    const infoStream = createWriteStream(fullPath + ".ogg.info", {
-      flags: "wx",
-    });
-    const info = {
-      // TODO : Key and delete are attributes linked to the original Pandora Web service
-      // Once I've ascertained these aren't used in cooking, I'll delete them from here
-      key: "0",
-      delete: "0",
-      // TODO : Although this doesn't seems to be used, maybe include the actual requester ?
-      requester: "anUser#433443",
-      requesterId: "1111111111111",
-      startTime: new Date().toISOString(),
-    };
-    Object.assign(info, details);
-    infoStream.write(JSON.stringify(info));
-    infoStream.end();
-  }
-
   registerNewTrackForUser(userTrackNo: number, user: User): void {
     // Put a valid Opus header at the beginning
     try {
@@ -95,7 +65,6 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     } catch (e) {
       console.error(e);
     }
-    // TODO : Add avatar fetching (although no UI is needed, could be skipped altogether)
     const userData = {
       id: user.id,
       name: user.username,
@@ -108,24 +77,6 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     } catch (e) {
       console.error(e);
     }
-  }
-
-  private addNewHeader(userTrackNo: number): void {
-    this.write(
-      this.oggHStream[0],
-      0,
-      userTrackNo,
-      0,
-      OpusMultiTracksEncoder.OPUS_HEADER[0],
-      OggEncoder.BOS
-    );
-    this.write(
-      this.oggHStream[1],
-      0,
-      userTrackNo,
-      1,
-      OpusMultiTracksEncoder.OPUS_HEADER[1]
-    );
   }
 
   encodeChunk(
@@ -179,6 +130,58 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     return packetNo;
   }
 
+  closeStreams(): void {
+    this.oggHStream[0].end();
+    this.oggHStream[1].end();
+    this.oggStream.end();
+    this.fUStream.end();
+  }
+
+  private assertStorageDirCreated() {
+    if (!existsSync(OpusMultiTracksEncoder.BASE_STORAGE_DIR))
+      mkdirSync(OpusMultiTracksEncoder.BASE_STORAGE_DIR, { recursive: true });
+  }
+
+  /**
+   * Write all the stream info into a file. Ths is a later on used in cooking (cook/recinfo.js)
+   */
+  private writeInfoFile(fullPath: string, details: IRecordingDetails): void {
+    const infoStream = createWriteStream(fullPath + ".ogg.info", {
+      flags: "wx",
+    });
+    const info = {
+      // TODO : Key and delete are attributes linked to the original Pandora Web service
+      // Once I've ascertained these aren't used in cooking, I'll delete them from here
+      key: "0",
+      delete: "0",
+      // TODO : Although this doesn't seems to be used, maybe include the actual requester ?
+      requester: "anUser#433443",
+      requesterId: "1111111111111",
+      startTime: new Date().toISOString(),
+    };
+    Object.assign(info, details);
+    infoStream.write(JSON.stringify(info));
+    infoStream.end();
+  }
+
+  private addNewHeader(userTrackNo: number): void {
+    this.write(
+      this.oggHStream[0],
+      0,
+      userTrackNo,
+      0,
+      OpusMultiTracksEncoder.OPUS_HEADER[0],
+      OggEncoder.BOS
+    );
+    this.write(
+      this.oggHStream[1],
+      0,
+      userTrackNo,
+      1,
+      OpusMultiTracksEncoder.OPUS_HEADER[1]
+    );
+  }
+
   private write(
     stream: OggEncoder,
     granulePos: number,
@@ -207,12 +210,5 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
 
     const nChunk = chunk.slice(off) as Chunk;
     return nChunk;
-  }
-
-  closeStreams(): void {
-    this.oggHStream[0].end();
-    this.oggHStream[1].end();
-    this.oggStream.end();
-    this.fUStream.end();
   }
 }
