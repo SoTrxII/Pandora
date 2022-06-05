@@ -40,9 +40,6 @@ export class Pandora {
   async bootUp(): Promise<void> {
     this.client = await this.clientProvider();
 
-    // Init control methods
-    await this.unifiedController.initialize();
-
     // Starting a new record when any of the control method asks to
     this.unifiedController.on("start", (evt) =>
       this.onStartCommand(evt.controller, evt.data)
@@ -62,6 +59,9 @@ export class Pandora {
     this.unifiedController.on("error", (evt) =>
       this.onControllerErrorEvent(evt.controller, evt.error)
     );
+
+    // Init control methods
+    await this.unifiedController.initialize();
 
     this.client.on("connect", () => {
       this.logger.info("Up & Ready");
@@ -83,7 +83,10 @@ export class Pandora {
    * @param c Controller firing the command
    * @param data Recording context info
    */
-  async onStartCommand(c: IController, data: IRecordAttemptInfo): Promise<void> {
+  async onStartCommand(
+    c: IController,
+    data: IRecordAttemptInfo
+  ): Promise<void> {
     this.logger.info(`[Controller ${c}] :: Starting a new recording...`);
     this.logger.debug(`Record parameters : ${JSON.stringify(data)}`);
     await this.startRecording(c, data);

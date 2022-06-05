@@ -14,7 +14,11 @@
   "!dist/**/*.js",
   "!src/**/*.config.ts",
   "!src/**/*.d.ts",
-  "!src/**/*.integration.ts"
+  "!src/**/*.integration.ts",
+  "!src/**/*.integration.spec.ts",
+  "!src/**/*.main.ts",
+  "!src/**/dapr-server-adapter.ts",
+  "!src/**/logger-*.ts"
 ],
   "modulePathIgnorePatterns": [
   "<rootDir>/dist",

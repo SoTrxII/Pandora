@@ -1,11 +1,13 @@
-import { DaprClient, DaprServer } from "dapr-client";
 import {
   IController,
   IControllerState,
+  IRecordAttemptInfo,
   RECORD_EVENT,
 } from "../../bot-control.types";
 import * as EventEmitter from "events";
-import { injectable } from "inversify";
+import { inject, injectable } from "inversify";
+import { TYPES } from "../../../../types";
+import { IPubSubClientProxy, IPubSubServerProxy } from "./pub-sub-broker-api";
 
 @injectable()
 export class PubSubBroker extends EventEmitter implements IController {
@@ -21,32 +23,72 @@ export class PubSubBroker extends EventEmitter implements IController {
     ENDED: "stoppedRecordingDiscord",
     INFO: "recordingDiscordInfo",
   };
-  private readonly server = new DaprServer();
-  private readonly client = new DaprClient();
 
-  // PubSubName : Name of the Dapr component to use as a Pub/Sub interface
-  constructor(private readonly pubSubName: string) {
+  constructor(
+    @inject(TYPES.PubSubClientProxy)
+    private readonly client: IPubSubClientProxy,
+    @inject(TYPES.PubSubServerProxy)
+    private readonly server: IPubSubServerProxy,
+    private readonly pubSubName: string
+  ) {
     super();
   }
 
   async start(): Promise<void> {
-    await this.server.pubsub.subscribe(
+    await this.server.subscribe(
       this.pubSubName,
       PubSubBroker.TOPICS.START,
-      (data) => Promise.resolve(this.emit("start", this.handleData(data)))
+      (data) => this.attemptStartEvent(data)
     );
 
-    await this.server.pubsub.subscribe(
+    await this.server.subscribe(
       this.pubSubName,
       PubSubBroker.TOPICS.END,
-      (data) => Promise.resolve(this.emit("end", this.handleData(data)))
+      (data) => this.attemptEndEvent(data)
     );
 
     await this.server.start();
+    this.emit("debug", "Registrations complete");
   }
 
-  handleData(data: any): any {
-    return data;
+  /**
+   * Fires a start event if all the conditions are met
+   * @param data event payload
+   */
+  async attemptStartEvent(data: IRecordAttemptInfo): Promise<void> {
+    this.emit("debug", `Message received ${data}`);
+    if (this.isStartPayloadValid(data ?? undefined)) {
+      this.emit("start", {
+        voiceChannelId: data.voiceChannelId,
+      } as IRecordAttemptInfo);
+    } else {
+      this.emit(
+        "error",
+        new Error(
+          `Couldn't start recording, invalid start payload ${JSON.stringify(
+            data
+          )}`
+        )
+      );
+    }
+  }
+
+  /**
+   * Fires an end event of all the conditions are met
+   * @param data
+   */
+  async attemptEndEvent(data: any): Promise<void> {
+    this.emit("end");
+  }
+
+  /**
+   * Attempt to fires a start command if every condition are met
+   * @param data
+   */
+  isStartPayloadValid(data: IRecordAttemptInfo): boolean {
+    return (
+      data?.voiceChannelId !== undefined && !isNaN(Number(data?.voiceChannelId))
+    );
   }
 
   async getState(): Promise<IControllerState> {
@@ -64,25 +106,25 @@ export class PubSubBroker extends EventEmitter implements IController {
   }
 
   async sendMessage(message: string): Promise<number> {
-    await this.client.pubsub.publish(
-      this.pubSubName,
-      PubSubBroker.TOPICS.INFO,
-      { data: message }
-    );
+    await this.client.publish(this.pubSubName, PubSubBroker.TOPICS.INFO, {
+      data: message,
+    });
     return 1;
   }
 
   async signalState(event: RECORD_EVENT): Promise<void> {
-    switch (event) {
+    // There is a weird ts bug on enum when used in switches
+    // the '+' is converting the enum back to a number
+    switch (+event) {
       case RECORD_EVENT.STARTED:
-        await this.client.pubsub.publish(
+        await this.client.publish(
           this.pubSubName,
           PubSubBroker.TOPICS.STARTED,
           { data: undefined }
         );
         break;
       case RECORD_EVENT.STOPPED:
-        await this.client.pubsub.publish(
+        await this.client.publish(
           this.pubSubName,
           PubSubBroker.TOPICS.ENDED,
           // TODO : Add data

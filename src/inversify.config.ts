@@ -23,6 +23,11 @@ import { IBotImpl } from "./pkg/controller/methods/commands/command-broker-exter
 import { ILogger } from "./pkg/logger/logger-api";
 import { ecsLogger } from "./pkg/logger/logger-ecs";
 import { plainTextLogger } from "./pkg/logger/logger-plain-text";
+import {
+  IPubSubClientProxy,
+  IPubSubServerProxy,
+} from "./pkg/controller/methods/pub-sub/pub-sub-broker-api";
+import { DaprServerAdapter } from "./pkg/controller/methods/pub-sub/dapr-server-adapter";
 
 export const container = new Container();
 
@@ -56,8 +61,20 @@ container
 
 /** PubSub Interface */
 container
+  .bind(TYPES.PubSubClientProxy)
+  .toConstantValue(new DaprClient().pubsub);
+container
+  .bind(TYPES.PubSubServerProxy)
+  .toConstantValue(new DaprServerAdapter());
+container
   .bind<IController>(TYPES.Controller)
-  .toConstantValue(new PubSubBroker(process.env.PUBSUB_NAME));
+  .toConstantValue(
+    new PubSubBroker(
+      container.get<IPubSubClientProxy>(TYPES.PubSubClientProxy),
+      container.get<IPubSubServerProxy>(TYPES.PubSubServerProxy),
+      process.env.PUBSUB_NAME
+    )
+  );
 
 /** Eris client */
 container.bind(TYPES.ClientProvider).toProvider((context) => {

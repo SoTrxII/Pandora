@@ -44,6 +44,12 @@ export class BotController
             controller: c,
           })
         );
+        c.on("debug", (data) =>
+          this.emit("debug", {
+            message: data,
+            controller: c,
+          })
+        );
         await c.start();
       })
     );

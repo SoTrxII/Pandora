@@ -20,7 +20,7 @@
     "prebuild": "npx shx rm -rf build/*",
     "build": "tsc && npx shx cp package.json dist/package.json",
     "postbuild": "npx shx cp -r src/assets dist/",
-    "start:dapr": "dapr run --dapr-http-port 3500",
+    "start:dapr": "dapr run --app-id pandora --app-port 50051 --dapr-http-port 3500",
     "start:dev": "npm run build && node -r dotenv-safe/config dist/main.js "
   },
   "dependencies": {

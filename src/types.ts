@@ -7,6 +7,8 @@ export const TYPES = {
   UnifiedController: Symbol.for("UnifiedController"),
   StoreProxy: Symbol.for("StoreProxy"),
   StateStore: Symbol.for("StateStore"),
+  PubSubClientProxy: Symbol.for("PubSubClientProxy"),
+  PubSubServerProxy: Symbol.for("PubSubServerProxy"),
   ClientProvider: Symbol.for("ClientProvider"),
   Client: Symbol.for("Client"),
 };
