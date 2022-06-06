@@ -2,9 +2,9 @@
 import { CommandBroker } from "./command-broker";
 import { Substitute } from "@fluffy-spoon/substitute";
 import {
+  FileContent,
   Message,
   MessageContent,
-  MessageFile,
   PossiblyUncachedTextableChannel,
   TextableChannel,
 } from "eris";
@@ -294,7 +294,7 @@ describe("Command Broker", () => {
           type: ChannelType.GuildText,
           createMessage(
             content: MessageContent,
-            file?: MessageFile | MessageFile[]
+            file?: FileContent | FileContent[]
           ): Promise<any> {
             hasBeenCalled = true;
             return Promise.resolve(1);
