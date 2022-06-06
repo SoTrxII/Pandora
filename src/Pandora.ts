@@ -201,6 +201,7 @@ export class Pandora {
         this.logger.debug(`[Audiorecorder] =>  ${message}`);
       });
       this.logger.debug(`[Main] :: Record started with id ${recordId}`);
+      await c.sendMessage(`Recording started with id ${recordId}`);
       // commit this new record to the external state...
       await this.persistNewRecord(
         currentState,
@@ -259,6 +260,7 @@ export class Pandora {
       // Preventing multiple event handler to be registered across multiple sessions
       this.audioRecorder.removeAllListeners("error");
       this.audioRecorder.removeAllListeners("debug");
+      await c.sendMessage(`Recording stopped successfully !`);
       await c.signalState(RECORD_EVENT.STOPPED);
     } catch (e) {
       switch (e.constructor.name) {
@@ -311,6 +313,8 @@ export class Pandora {
     }
     // TODO: Check if the bot has the correct permissions to join and listen
     // to the voice channel
+
+    return channel;
   }
 
   /**
