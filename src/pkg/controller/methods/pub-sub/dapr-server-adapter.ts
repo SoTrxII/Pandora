@@ -1,5 +1,5 @@
 import { IPubSubServerProxy } from "./pub-sub-broker-api";
-import { DaprServer } from "dapr-client";
+import { DaprServer } from "@dapr/dapr";
 import { injectable } from "inversify";
 
 /**

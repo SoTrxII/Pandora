@@ -7,12 +7,12 @@
  * These tests are ignored by jest
  */
 import "reflect-metadata";
-import { DaprClient, DaprServer } from "dapr-client";
+import { DaprClient, DaprServer } from "@dapr/dapr";
 import { PubSubBroker } from "./pub-sub-broker";
 import { DaprServerAdapter } from "./dapr-server-adapter";
 import { RECORD_EVENT } from "../../bot-control.types";
-import IClientPubSub from "dapr-client/interfaces/Client/IClientPubSub";
-import IServerPubSub from "dapr-client/interfaces/Server/IServerPubSub";
+import IClientPubSub from "@dapr/dapr/interfaces/Client/IClientPubSub";
+import IServerPubSub from "@dapr/dapr/interfaces/Server/IServerPubSub";
 
 describe("Pub Sub Broker :: Integration", () => {
   let directClient: IClientPubSub,

@@ -12,7 +12,7 @@ import {
 import { PubSubBroker } from "./pkg/controller/methods/pub-sub/pub-sub-broker";
 import { CommandBroker } from "./pkg/controller/methods/commands/command-broker";
 import { BotController } from "./pkg/controller/bot-controller";
-import { DaprClient } from "dapr-client";
+import { DaprClient } from "@dapr/dapr";
 import {
   IRecordingStore,
   IStoreProxy,

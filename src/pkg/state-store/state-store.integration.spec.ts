@@ -9,7 +9,7 @@
 import "reflect-metadata";
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { ExternalStore } from "./external-store";
-import { DaprClient } from "dapr-client";
+import { DaprClient } from "@dapr/dapr";
 import { IRecordingState } from "./state-store.api";
 
 describe("State store::Integration", () => {
