@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
+import "reflect-metadata";
 import { CommandBroker } from "./command-broker";
 import { Substitute } from "@fluffy-spoon/substitute";
 import {

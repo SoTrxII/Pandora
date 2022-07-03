@@ -4,7 +4,6 @@ import { Writable } from "stream";
 export class OggEncoder {
   // Flags for all ogg
   public static BOS = 2;
-  public static EOS = 4;
 
   constructor(private fstream: Writable) {}
 

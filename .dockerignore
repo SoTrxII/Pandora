@@ -1,7 +1,9 @@
 node_modules
+.yarn
 *.ogg
 *.flac
 *.mp3
 dist
 rec
 package-lock.json
+.yarnrc.yml

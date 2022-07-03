@@ -1,0 +1,41 @@
+name: Build and push image to github registry
+
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  func-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Define ENV VARS
+        id: define_env
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
+
+      - name: Login to DockerHub
+        if: success()
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Install deps
+        run: npm install
+
+      - name: Transpile typescript
+        run: npm run build
+
+      - name: Copy required runtime artifacts
+        run: npm run build:copyartifacts
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push create-thumbnail func
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/create-thumbnail:${{ steps.define_env.outputs.tag }}

@@ -112,7 +112,10 @@ export class PubSubBroker extends EventEmitter implements IController {
     return 1;
   }
 
-  async signalState(event: RECORD_EVENT): Promise<void> {
+  async signalState(
+    event: RECORD_EVENT,
+    payload: Record<string, unknown>
+  ): Promise<void> {
     // There is a weird ts bug on enum when used in switches
     // the '+' is converting the enum back to a number
     switch (+event) {
@@ -120,15 +123,14 @@ export class PubSubBroker extends EventEmitter implements IController {
         await this.client.publish(
           this.pubSubName,
           PubSubBroker.TOPICS.STARTED,
-          { data: undefined }
+          payload
         );
         break;
       case RECORD_EVENT.STOPPED:
         await this.client.publish(
           this.pubSubName,
           PubSubBroker.TOPICS.ENDED,
-          // TODO : Add data
-          { data: undefined }
+          payload
         );
         break;
       default:

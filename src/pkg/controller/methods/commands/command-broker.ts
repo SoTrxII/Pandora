@@ -9,10 +9,12 @@ import {
 import { Message, TextableChannel } from "eris";
 import { IBotImpl } from "./command-broker-external-api";
 import { ChannelType } from "discord-api-types/v10";
+import { injectable } from "inversify";
 
 /**
  * Controlling the bot with classic commands
  */
+@injectable()
 export class CommandBroker extends EventEmitter implements IController {
   /** Class identifier, used to prevent using reflection on the class name which can be flaky */
   private static readonly CLASS_ID = "COMMAND";
@@ -63,7 +65,7 @@ export class CommandBroker extends EventEmitter implements IController {
    * @param content
    */
   getMsgTrigger(content: string): string | undefined {
-    return content?.substr(this.cmdPrefix.length)?.split(/\s+/)?.[0];
+    return content?.substring(this.cmdPrefix.length)?.split(/\s+/)?.[0];
   }
 
   /**
@@ -100,34 +102,36 @@ export class CommandBroker extends EventEmitter implements IController {
   ): Promise<void> {
     switch (trigger) {
       case this.botCommands.start:
-        this.state = {
-          name: CommandBroker.CLASS_ID,
-          data: {
-            messageId: id,
-            textChannelId: textChannelId,
-            voiceChannelId: author.voiceChannelId,
-          },
-        };
         try {
-          return await this.attemptStartEvent(
+          await this.attemptStartEvent(
             textChannelId,
             id,
             author.voiceChannelId ?? undefined
           );
+          this.state = {
+            name: CommandBroker.CLASS_ID,
+            data: {
+              messageId: id,
+              textChannelId: textChannelId,
+              voiceChannelId: author.voiceChannelId,
+            },
+          };
+          return;
         } catch (e) {
           this.emit("error", e);
         }
         break;
       case this.botCommands.end:
-        this.state = {
-          name: CommandBroker.CLASS_ID,
-          data: undefined,
-        };
         try {
-          return await this.attemptEndEvent({
+          await this.attemptEndEvent({
             id: author.id,
             username: author.username,
           });
+          this.state = {
+            name: CommandBroker.CLASS_ID,
+            data: undefined,
+          };
+          return;
         } catch (e) {
           this.emit(e);
         }

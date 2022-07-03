@@ -28,6 +28,8 @@ import {
   IPubSubServerProxy,
 } from "./pkg/controller/methods/pub-sub/pub-sub-broker-api";
 import { DaprServerAdapter } from "./pkg/controller/methods/pub-sub/dapr-server-adapter";
+import { InteractionBroker } from "./pkg/controller/methods/interactions/interaction-broker";
+import { Client, Constants } from "eris";
 
 export const container = new Container();
 
@@ -60,21 +62,25 @@ container
   );
 
 /** PubSub Interface */
-container
-  .bind(TYPES.PubSubClientProxy)
-  .toConstantValue(new DaprClient().pubsub);
-container
-  .bind(TYPES.PubSubServerProxy)
-  .toConstantValue(new DaprServerAdapter());
-container
-  .bind<IController>(TYPES.Controller)
-  .toConstantValue(
-    new PubSubBroker(
-      container.get<IPubSubClientProxy>(TYPES.PubSubClientProxy),
-      container.get<IPubSubServerProxy>(TYPES.PubSubServerProxy),
-      process.env.PUBSUB_NAME
-    )
-  );
+// Only register the Pub/Sub broker if the dapr component name was provided
+const PSComponent = process.env?.PUBSUB_NAME;
+if (PSComponent) {
+  container
+    .bind(TYPES.PubSubClientProxy)
+    .toConstantValue(new DaprClient().pubsub);
+  container
+    .bind(TYPES.PubSubServerProxy)
+    .toConstantValue(new DaprServerAdapter());
+  container
+    .bind<IController>(TYPES.Controller)
+    .toConstantValue(
+      new PubSubBroker(
+        container.get<IPubSubClientProxy>(TYPES.PubSubClientProxy),
+        container.get<IPubSubServerProxy>(TYPES.PubSubServerProxy),
+        process.env.PUBSUB_NAME
+      )
+    );
+}
 
 /** Eris client */
 container.bind(TYPES.ClientProvider).toProvider((context) => {
@@ -106,6 +112,25 @@ container.bind<IController>(TYPES.Controller).toDynamicValue((context) => {
       start: "record",
       end: "end",
     }
+  );
+});
+
+/** Interaction Interface */
+container.bind<IController>(TYPES.Controller).toDynamicValue((context) => {
+  return new InteractionBroker(
+    context.container.get<() => Promise<Client>>(TYPES.ClientProvider),
+    [
+      {
+        name: "record",
+        description: "Record the voice channel the user is in",
+        type: Constants.ApplicationCommandTypes.CHAT_INPUT,
+      },
+      {
+        name: "end",
+        description: "End a previously started recording",
+        type: Constants.ApplicationCommandTypes.CHAT_INPUT,
+      },
+    ]
   );
 });
 

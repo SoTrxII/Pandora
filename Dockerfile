@@ -1,27 +1,19 @@
 # Expected size : 214Mb
+# We're using yarn berry in legacy node_modules mode. PnP isn't that reliable for the moment
 FROM node:current-alpine as build
 WORKDIR /app
-COPY package.json /app/
-RUN apk add alpine-sdk git python2 bash \
-    && npm install -g npm \
-    && npm install -g node-gyp \
-    && npm install
-
+RUN apk add python3 make alpine-sdk yarn
 COPY . /app/
-RUN npm run build
+RUN yarn set version berry && echo "nodeLinker: node-modules" >> .yarnrc.yml
+RUN yarn install
+RUN yarn run build
 
 FROM node:current-alpine as prod
 WORKDIR /app
 COPY --from=build /app/dist /app
-RUN apk add --no-cache --virtual=.build-deps alpine-sdk git python2 bash \
-    && apk add --no-cache ffmpeg \
-    && npm install -g pm2 modclean \
-    && npm install --only=prod \
-    && modclean -r \
-    && modclean -r /usr/local/lib/node_modules/pm2 \
-    && npm uninstall -g modclean \
-    && npm cache clear --force \
-    && apk del .build-deps \
-    && rm -rf /root/.npm /usr/local/lib/node_modules/npm
-
-CMD ["pm2-runtime", "/app/main.js"]
+RUN apk add --no-cache --virtual=.build-deps alpine-sdk python3 \
+    && yarn set version berry && echo "nodeLinker: node-modules" >> .yarnrc.yml \
+    && yarn plugin import workspace-tools  \
+    && yarn workspaces focus --all --production \
+    && apk del .build-deps
+CMD ["node", "/app/main.js"]

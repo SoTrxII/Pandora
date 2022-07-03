@@ -19,173 +19,197 @@ The number of cooking servers can then be increased along with the workload.
 dapr init
 ```
 
-There are two ways to use Pandora. Either by using commands (as any other Discord Bot), or by using a Redis PubSub
-database to begin/end the recording. This second way of inputting commands is useful when an external process is
-triggering the recording (such as another bot, or a web service). You can choose one way (or both) in the
-[configuration section](#configuration).
+There are three ways to use Pandora. Using text-based commands, interactions, or pub/sub messages
+component to begin/end the recording. See [configuration section](#configuration).
 
 ### Commands
 
 ```bash
-# The default command prefix is "."
+# You can configure the command prefix, see "configuration" section
 # Start a recording session
-.record
+<COMMAND_PREFIX>record
 
 # End a recording session
-.end
+<COMMAND_PREFIX>end
 ```
 
-### Redis
+### Interactions
 
-In order to begin a recording session, you have to publish to the channel `startRecordingDiscord`. The [Redis Payload](#redis-message)
-must contain the voice channel id to record in the data Object.
+```bash
+# Start a recording session
+/record
+
+# End a recording session
+/end
+```
+
+### Pub/Sub
+
+The pub/sub communication is using the [Request/Reply](https://www.enterpriseintegrationpatterns.com/RequestReply.html) pattern.
+In order to begin a recording session, you have to publish to the topic `startRecordingDiscord`. The [Redis Payload](#redis-message)
+must contain the voice channel id to record.
+The pub/sub component itself can be any valid [Dapr pub/sub component](https://docs.dapr.io/reference/components-reference/supported-pubsub). See [configuration section](#configuration).
 Example:
 
 ```ts
-// Create a Redis publisher instance by any means
-redis.publish("startRecordingDiscord", {
-  hasError: false,
-  data: { voiceChannelId: "<ID of the voice channel to record>" },
+pubsub.publish("startRecordingDiscord", {
+  voiceChannelId: "<ID of the voice channel to record>",
 });
 ```
 
-Once the recording started, an acknowledgment will be sent on the channel `recordingDiscordBegan`.
+Once the recording started, an acknowledgment will be sent on the topic `recordingDiscordBegan`.
 
-Likewise, to stop recording, simply publish to the channel `stopRecordingDiscord`.
+Likewise, to stop recording, simply publish to the topic `stopRecordingDiscord`.
 Example:
 
 ```ts
-// Create a Redis publisher instance by any means
-redis.publish("stopRecordingDiscord", {
-  hasError: false,
-});
+pubsub.publish("stopRecordingDiscord");
 ```
 
-The acknowledgment will be sent on the channel `recordingDiscordStopped`.
+The acknowledgment will be sent on the topic `recordingDiscordStopped`.
 
-## Using Pandora and the cooking server together
+## Architecture
+
+![Architecture](./resources/images/architecture.png)
+
+Pandora uses 4 modules:
+
+- The **audio recorder** itself, capturing RTP packets from Discord and storing the raw OGG packets in a set of text files.
+- The **UnifiedController**, an event-based interface to handle how to start/end a recording. So far, the bot can be
+  controlled either by text commands, interactions or pub/sub messages.
+- An external **state store**. Catching errors from Discord voice connections has always been very tedious,
+  this store saves the current recording state and leaves the bot reboot to get a clean state.
+- A **logger**. Plain text loggin is used in development, [ECS format](https://www.elastic.co/guide/en/ecs/current/index.html) is used in production.
+
+## Configuration
+
+Pandora uses 4 environment variables to control its runtime behaviour.
+
+```dotenv
+# Discord bot token
+PANDORA_TOKEN=<DISCORD_TOKEN>
+# Prefix for text-based command
+COMMAND_PREFIX=<COMMAND_PREFIX>
+# Dapr components names
+PUBSUB_NAME=<DAPR_COMPONENT_PUBSUB>
+STORE_NAME=<DAPR_COMPONENT_STORE>
+```
+
+#### Dapr
+
+[Dapr](https://github.com/dapr/dapr) is used a decoupling solution. Dapr uses **components** to define the implementation
+of some part of the application at runtime using a [sidecar architecture.](https://medium.com/nerd-for-tech/microservice-design-pattern-sidecar-sidekick-pattern-dbcea9bed783)
+
+Pandora uses two Dapr components, a [pub/sub component](https://docs.dapr.io/operations/components/setup-pubsub/) and a [state store component](https://docs.dapr.io/reference/components-reference/supported-state-stores/). 
+
+These components are YAML files mounted in the sidecar as a volume. You can find a sample deployment 
+using these components in the [sample implementation](#full-discord-recording-implementation) section.
+
+```yaml 
+# A sample pubsub component using Redis 
+# as a backend
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis:6379
+  - name: redisPassword
+    value: ""
+```
+
+```yaml 
+# A sample statestore component using Redis 
+# as a backend
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis:6379
+  - name: redisPassword
+    value: ""
+```
+
+## Full discord recording implementation
 
 Pandora's records are stored in the `rec` directory. The cooking server is also looking for
 records in its own `rec` directory.
-The simplest way to share these directories is by using a **Docker volume**.
+The simplest way to share these directories is by using a **volume**.
 
 Here is an example Docker-compose configuration using both projects Docker images :
 
 ```yaml
 version: "3.7"
 services:
+  # Record a voice channel into raw files
   pandora:
     image: ghcr.io/sotrxii/pandora/pandora:latest
     container_name: pandora
     restart: always
     environment:
+      # Discord bot token
       - PANDORA_TOKEN=<DISCORD_TOKEN>
-      - COMMAND_PREFIX=.
-      - USE_REDIS_INTERFACE=0
-      - USE_COMMAND_INTERFACE=1
-      - REDIS_HOST=<REDIS_HOST>
+      # Prefix for text-based command
+      - COMMAND_PREFIX=<COMMAND_PREFIX>
+      # Dapr components names
+      - PUBSUB_NAME=<DAPR_COMPONENT_PUBSUB>
+      - STORE_NAME=<DAPR_COMPONENT_STORE>
     volumes:
       - pandora_recordings:/rec
+    networks:
+      - discord_recordings
+  # Dapr sidecar, defining runtime implementations
+  pandora-dapr:
+    image: "daprio/daprd:edge"
+    command:
+      [
+        "./daprd",
+        "-app-id",
+        "pandora",
+        "-app-port",
+        "50051",
+        "-dapr-grpc-port",
+        "50002",
+        "-components-path",
+        "/components",
+      ]
+    volumes:
+      - "./components/:/components"
+    depends_on:
+      - pandora
+    network_mode: "service:pandora"
 
+  # Converts the raw files into audio files  
   pandora-cooking-server:
     image: ghcr.io/sotrxii/pandora-cooking-server/pandora-cooking-server:latest
     container_name: pandora-cooking-server
     restart: always
     volumes:
       - pandora_recordings:/app/rec
+    networks:
+      - discord_recordings
+
+  # Pub/Sub broker && state store 
+  redis:
+    image: "redis:alpine"
+    networks:
+      - discord_recordings
+
+# Storing the recordings 
 volumes:
   pandora_recordings:
+
+# Default docker network doesn't always provide name resolution
+# so we create a new one 
+networks:
+  discord_recordings:
 ```
-
-Of course many other ways exists.
-
-## Installation
-
-### Docker
-
-Using Docker to run the bot is the recommended (and easy) way.
-
-```bash
-# Either pull the bot from the GitHub registry (requiring login for some reason)
-docker login ghcr.io --username <YOUR_USERNAME>
-# The image is 214Mb
-docker pull ghcr.io/sotrxii/pandora/pandora:latest
-
-# OR build it yourself (from the project's root)
-docker build -t ghcr.io/sotrxii/pandora/pandora:latest
-```
-
-Once the image is pulled/built, run it:
-
-```bash
-docker run \
--e USE_COMMAND_INTERFACE="<1 or 0>" \
--e USE_REDIS_INTERFACE="<1 or 0>" \
--e COMMAND_PREFIX="." \
--e PANDORA_TOKEN="<DISCORD_BOT_TOKEN>" \
--e REDIS_HOST="<REDIS_DB_URL>" \
--it ghcr.io/sotrxii/pandora/pandora:latest
-```
-
-Refer to the [configuration](#configuration) for an explanation of the environment variables.
-The bot should be up and running !
-
-#### Why two Dockerfiles ?
-
-The main Dockerfile is using Alpine Linux. Although I love Alpine, it gets a bit... dicey sometimes.
-Although it _seems_ to run as expected, weird bugs can occurs, and the Ubuntu Docker variant, although
-twice as large, is included to check if Alpine is playing tricks once again.
-
-### Natively
-
-Eris requires FFMPEG to be installed. Nodejs is of course also required.
-
-```bash
-npm install
-# Transpile Typescript into Javascript
-npm run build
-```
-
-Next, copy `.env.example` into `.env.` Refer to the [configuration step](#configuration) to fill the values in.
-
-Finally, the fastest way to get the bot running is:
-
-    npm run start:dev
-
-However, this is not the best way to achieve it in a production environment.
-
-A cleaner way would be to copy the **dist** directory into another location and only install the production dependencies.
-
-```bash
-# From the project's root
-cp -r dist /away/pandora
-cp .env /away/pandora/.env
-cd /away/pandora
-
-# We don't need all these devdependencies
-npm install --only=prod
-
-# Load the .env file into the bot process.
-npm install dotenv-safe
-node -r dotenv-safe/config main.js
-```
-
-With this, Pandora should be up and running !
-
-## Configuration
-
-Pandora uses 5 environment variables to control its runtime behaviour.
-
-- COMMAND_PREFIX : This is the command prefix for the Discord commands. Use whatever you like.
-- PANDORA_TOKEN : Standard discord bot token. You can see your apps in the [Discord developers portal](https://discord.com/developers/applications)
-- USE_COMMAND_INTERFACE : Either "1" or "O" (Boolean). When enabled ("1") the bot will listen to Discord commands (<prefix>record, <prefix>end)
-- USE_REDIS_INTERFACE : Either "1" or "O" (Boolean). When enabled ("1") the bot will attempt to connect to the REDIS_HOST and listen to the command.
-- REDIS_HOST : Redis DB URL.
-
-If USE_REDIS_INTERFACE is "0", set REDIS_HOST will default to localhost and can be omitted.
-(Except if you're using **dotenv-safe**, it won't be happy if you omit a value. In this case, you can set REDIS_HOST to
-whatever you want, it won't be used)
-
-Both USE_COMMAND_INTERFACE and USE_COMMAND_INTERFACE can be enabled at the same time.
-The audio recording module is in a Singleton scope. This means you could theoretically start a recording
-via Redis and end it via a discord command (Why tho ?).

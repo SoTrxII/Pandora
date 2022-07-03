@@ -261,7 +261,11 @@ export class Pandora {
       this.audioRecorder.removeAllListeners("error");
       this.audioRecorder.removeAllListeners("debug");
       await c.sendMessage(`Recording stopped successfully !`);
-      await c.signalState(RECORD_EVENT.STOPPED);
+      await c.signalState(RECORD_EVENT.STOPPED, {
+        recordsIds: currentState.recordsIds,
+        // TODO : Startime is the startime of the last record, not the first
+        startTime: startTime,
+      });
     } catch (e) {
       switch (e.constructor.name) {
         case InvalidRecorderStateError.name:

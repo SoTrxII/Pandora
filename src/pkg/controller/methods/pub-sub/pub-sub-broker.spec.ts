@@ -39,11 +39,13 @@ describe("PubSub broker", () => {
     it.each([RECORD_EVENT.STARTED, RECORD_EVENT.STOPPED])(
       "Valid event %s received",
       async (evt) => {
-        await expect(broker.signalState(evt)).resolves.not.toThrow();
+        await expect(broker.signalState(evt, undefined)).resolves.not.toThrow();
       }
     );
     it("Invalid event received", async () => {
-      await expect(broker.signalState("test" as any)).rejects.toThrow();
+      await expect(
+        broker.signalState("test" as any, undefined)
+      ).rejects.toThrow();
     });
   });
   describe("Own state", () => {

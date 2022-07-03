@@ -91,7 +91,7 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
     const guild = this.voiceChannel.guild;
     this.multiTracksEncoder.initStreams(recordId, {
       guild: `${guild.name}#${guild.id}`,
-      channel: `${this.voiceChannel.name}#${this.voiceChannel.id}`,
+      channel: this.voiceChannel.name,
     });
     this.voiceConnection = await this.setupVoiceConnection();
     this.voiceReceiver = this.voiceConnection.receive("opus");

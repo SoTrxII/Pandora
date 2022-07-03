@@ -83,7 +83,10 @@ export declare interface IController {
    * Signals an evolution on the recording process state
    * @param event
    */
-  signalState(event: RECORD_EVENT): Promise<void>;
+  signalState(
+    event: RECORD_EVENT,
+    payload?: Record<string, unknown>
+  ): Promise<void>;
 }
 
 /**
