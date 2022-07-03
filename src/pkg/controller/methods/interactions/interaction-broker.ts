@@ -6,7 +6,6 @@ import {
   RECORD_EVENT,
 } from "../../bot-control.types";
 import * as EventEmitter from "events";
-import { IBotImpl } from "./interaction-broker-api";
 import { injectable } from "inversify";
 import {
   ApplicationCommand,
@@ -14,6 +13,7 @@ import {
   Client,
   CommandInteraction,
   Constants,
+  Interaction,
   Message,
   TextableChannel,
 } from "eris";
@@ -55,10 +55,10 @@ export class InteractionBroker extends EventEmitter implements IController {
 
   constructor(
     private readonly clientProvider: () => Promise<Client>,
-    commands: ApplicationCommandStructure[]
+    commands: ApplicationCommandStructure[] = []
   ) {
     super();
-    this.commands = Object.assign(InteractionBroker.DEFAULT_COMMANDS, commands);
+    this.commands = commands ?? InteractionBroker.DEFAULT_COMMANDS;
   }
 
   /**
@@ -109,9 +109,9 @@ export class InteractionBroker extends EventEmitter implements IController {
       );
     }
     // Check author
-    if (this.state.data.authorId !== endAuthor.id) {
+    if (this.state?.data?.authorId !== endAuthor.id) {
       throw new BrokerError(
-        `while finishing record : ${this.state.data.authorId} must end the recording himself (not ${endAuthor.username})`
+        `while finishing record : ${this.state?.data?.authorId} must end the recording himself (not ${endAuthor.username})`
       );
     }
     this.emit("end");
@@ -122,59 +122,61 @@ export class InteractionBroker extends EventEmitter implements IController {
     await this.registerCommands(this.commands);
 
     // Get rid as soon as possible of the Eris Message
-    this.boImpl.on("interactionCreate", async (interaction) => {
-      if (interaction instanceof CommandInteraction) {
-        switch (interaction.data.name) {
-          case "record":
-            try {
-              await interaction.acknowledge();
-              // Buffering the interaction to be able to reply to it
-              this.interactionBuffer = interaction;
-              const origMessage = await interaction.getOriginalMessage();
-              await this.attemptStartEvent(
-                interaction.channel.id,
-                origMessage.id,
-                interaction?.member?.voiceState?.channelID
-              );
-              this.state = {
-                name: InteractionBroker.CLASS_ID,
-                data: {
-                  messageId: origMessage.id,
-                  textChannelId: interaction.channel.id,
-                  voiceChannelId: interaction?.member?.voiceState?.channelID,
-                  authorId: interaction?.member?.id,
-                },
-              };
-              return;
-            } catch (e) {
-              this.emit("error", e);
-            }
-            break;
-          case "end":
-            try {
-              await interaction.acknowledge();
-              // Buffering the interaction to be able to reply to it
-              this.interactionBuffer = interaction;
-              await this.attemptEndEvent({
-                id: interaction?.member.id,
-                username: interaction?.member?.username,
-              });
-              this.state = {
-                name: InteractionBroker.CLASS_ID,
-                data: undefined,
-              };
-            } catch (e) {
-              this.emit("error", e);
-            }
-            break;
-          default:
-            this.emit(
-              "debug",
-              `Interaction received ${interaction.data.name}, but no handler found`
-            );
-        }
-      }
+    this.boImpl.on("interactionCreate", async (i) => {
+      if (i instanceof CommandInteraction) await this.handleInteraction(i);
     });
+  }
+
+  async handleInteraction(interaction: CommandInteraction) {
+    switch (interaction.data.name) {
+      case "record":
+        try {
+          await interaction.acknowledge();
+          // Buffering the interaction to be able to reply to it
+          this.interactionBuffer = interaction;
+          const origMessage = await interaction.getOriginalMessage();
+          await this.attemptStartEvent(
+            interaction.channel.id,
+            origMessage.id,
+            interaction?.member?.voiceState?.channelID
+          );
+          this.state = {
+            name: InteractionBroker.CLASS_ID,
+            data: {
+              messageId: origMessage.id,
+              textChannelId: interaction.channel.id,
+              voiceChannelId: interaction?.member?.voiceState?.channelID,
+              authorId: interaction?.member?.id,
+            },
+          };
+          return;
+        } catch (e) {
+          this.emit("error", e);
+        }
+        break;
+      case "end":
+        try {
+          await interaction.acknowledge();
+          // Buffering the interaction to be able to reply to it
+          this.interactionBuffer = interaction;
+          await this.attemptEndEvent({
+            id: interaction?.member.id,
+            username: interaction?.member?.username,
+          });
+          this.state = {
+            name: InteractionBroker.CLASS_ID,
+            data: undefined,
+          };
+        } catch (e) {
+          this.emit("error", e);
+        }
+        break;
+      default:
+        this.emit(
+          "debug",
+          `Interaction received ${interaction.data.name}, but no handler found`
+        );
+    }
   }
 
   getState(): Promise<IControllerState> {

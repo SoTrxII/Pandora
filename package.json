@@ -20,6 +20,7 @@
     "prebuild": "npx shx rm -rf build/*",
     "build": "tsc && npx shx cp package.json dist/package.json",
     "postbuild": "npx shx cp -r src/assets dist/",
+    "gen:doc": "typedoc --entryPointStrategy expand ./src",
     "start:dapr": "dapr run --app-id pandora --app-port 50051 --dapr-http-port 3500",
     "start:dev": "npm run build && node -r dotenv-safe/config dist/main.js "
   },
@@ -51,6 +52,7 @@
     "jest": "^28.1.0",
     "prettier": "^2.6.2",
     "ts-jest": "^28.0.4",
+    "typedoc": "^0.23.5",
     "typescript": "^4.7.3"
   },
   "eslintConfig": {

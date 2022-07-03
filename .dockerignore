@@ -6,4 +6,4 @@ node_modules
 dist
 rec
 package-lock.json
-.yarnrc.yml
+docs
