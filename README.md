@@ -1,9 +1,13 @@
 # Pandora: Discord recorder
 
+![CI](https://github.com/SoTrxII/Pandora/actions/workflows/publish-coverage.yml/badge.svg)
+[![codecov](https://codecov.io/gh/SoTrxII/Pandora/branch/master/graph/badge.svg?token=YI8X1HA6I7)](https://codecov.io/gh/SoTrxII/roll20-scrapper)
+[![Docker Image Size](https://badgen.net/docker/size/sotrx/pandora/2.0.0?icon=docker&label=pandora)](https://hub.docker.com/r/sotrx/pandora/)
+
 Pandora is a multi-track Discord voice recorder written in Typescript. This project should actually be considered as a
 partial fork of [Yahweasel's Craig](https://github.com/Yahweasel/craig), as the recording process is pretty much the
 same. Initially, I just needed to add some workflow changes to Craig, but plain Javascript wasn't that convenient to
-work with, and I ended up refactoring the whole thing, cherry picking the functionalities I wanted.
+work with, and I ended up refactoring the whole thing, cherry-picking the functionalities I wanted.
 
 Pandora can be regarded as a simplified version of Craig, intended to be used to record a single voice channel at a time.
 
@@ -100,13 +104,13 @@ STORE_NAME=<DAPR_COMPONENT_STORE>
 [Dapr](https://github.com/dapr/dapr) is used a decoupling solution. Dapr uses **components** to define the implementation
 of some part of the application at runtime using a [sidecar architecture.](https://medium.com/nerd-for-tech/microservice-design-pattern-sidecar-sidekick-pattern-dbcea9bed783)
 
-Pandora uses two Dapr components, a [pub/sub component](https://docs.dapr.io/operations/components/setup-pubsub/) and a [state store component](https://docs.dapr.io/reference/components-reference/supported-state-stores/). 
+Pandora uses two Dapr components, a [pub/sub component](https://docs.dapr.io/operations/components/setup-pubsub/) and a [state store component](https://docs.dapr.io/reference/components-reference/supported-state-stores/).
 
-These components are YAML files mounted in the sidecar as a volume. You can find a sample deployment 
+These components are YAML files mounted in the sidecar as a volume. You can find a sample deployment
 using these components in the [sample implementation](#full-discord-recording-implementation) section.
 
-```yaml 
-# A sample pubsub component using Redis 
+```yaml
+# A sample pubsub component using Redis
 # as a backend
 apiVersion: dapr.io/v1alpha1
 kind: Component
@@ -116,14 +120,14 @@ spec:
   type: pubsub.redis
   version: v1
   metadata:
-  - name: redisHost
-    value: redis:6379
-  - name: redisPassword
-    value: ""
+    - name: redisHost
+      value: redis:6379
+    - name: redisPassword
+      value: ""
 ```
 
-```yaml 
-# A sample statestore component using Redis 
+```yaml
+# A sample statestore component using Redis
 # as a backend
 apiVersion: dapr.io/v1alpha1
 kind: Component
@@ -133,10 +137,10 @@ spec:
   type: state.redis
   version: v1
   metadata:
-  - name: redisHost
-    value: redis:6379
-  - name: redisPassword
-    value: ""
+    - name: redisHost
+      value: redis:6379
+    - name: redisPassword
+      value: ""
 ```
 
 ## Full discord recording implementation
@@ -152,7 +156,7 @@ version: "3.7"
 services:
   # Record a voice channel into raw files
   pandora:
-    image: ghcr.io/sotrxii/pandora/pandora:latest
+    image: sotrx/pandora:2.0.0
     container_name: pandora
     restart: always
     environment:
@@ -188,8 +192,9 @@ services:
       - pandora
     network_mode: "service:pandora"
 
-  # Converts the raw files into audio files  
+  # Converts the raw files into audio files
   pandora-cooking-server:
+    # This one hasn't been uploaded on dockerhub yet
     image: ghcr.io/sotrxii/pandora-cooking-server/pandora-cooking-server:latest
     container_name: pandora-cooking-server
     restart: always
@@ -198,18 +203,18 @@ services:
     networks:
       - discord_recordings
 
-  # Pub/Sub broker && state store 
+  # Pub/Sub broker && state store
   redis:
     image: "redis:alpine"
     networks:
       - discord_recordings
 
-# Storing the recordings 
+# Storing the recordings
 volumes:
   pandora_recordings:
 
 # Default docker network doesn't always provide name resolution
-# so we create a new one 
+# so we create a new one
 networks:
   discord_recordings:
 ```
