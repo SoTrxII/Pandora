@@ -34,8 +34,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      - name: Build and push create-thumbnail func
+      - name: Build and push pandora
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/create-thumbnail:${{ steps.define_env.outputs.tag }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/pandora:${{ steps.define_env.outputs.tag }}

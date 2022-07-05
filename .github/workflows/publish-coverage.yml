@@ -1,4 +1,4 @@
-name: Publish Coverage
+name: Test & Publish Coverage
 
 on:
   push:
