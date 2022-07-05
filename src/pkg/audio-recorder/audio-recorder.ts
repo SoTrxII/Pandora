@@ -117,7 +117,7 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
       voiceConnection.stopPlaying();
       return voiceConnection;
     } catch (e) {
-      await this.voiceChannel.leave();
+      this.voiceChannel.leave();
       throw e;
     }
   }
@@ -146,7 +146,6 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
       const userRecents = this.userRecentPackets.get(userId);
       const packetNo = this.userPacketNos.get(user.id);
       const newPacketNo = this.multiTracksEncoder.flush(
-        user,
         userTrackNo,
         userRecents,
         1,
@@ -159,7 +158,7 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
   /**
    * Periodically pings the voice connection to make sure it's alive
    */
-  private heartbeat() {
+  heartbeat() {
     try {
       const oggStream = new Readable();
       this.voiceConnection.play(oggStream, { format: "ogg" });
@@ -175,13 +174,13 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
    * This process takes an Eris audio chunk and (seems to) converts it
    * to Discord.js format
    */
-  private adaptChunk(chunk: Buffer, userId: string, timestamp: number) {
+  adaptChunk(chunk: Buffer, userId: string, timestamp: number) {
     const newChunk: Chunk = Buffer.from(chunk) as Chunk;
     newChunk.timestamp = timestamp;
     // If the userId is the bot itself or if it's somehow not defined,
     // abort recording this chunk
-    if (!userId || userId === this.voiceChannel.client.user.id) return;
-    const member = this.voiceChannel.guild.members.get(userId);
+    if (!userId || userId === this.voiceChannel?.client?.user?.id) return;
+    const member = this.voiceChannel?.guild?.members?.get(userId);
     // Also abort if member is not found
     if (!member) return;
     return this.onReceive(member.user, newChunk);
@@ -229,7 +228,6 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
     if (userRecents.length > AudioRecorder.MAX_PACKETS_QUEUE_LENGTH) {
       const packetNo = this.userPacketNos.get(user.id);
       const newPacketNo = this.multiTracksEncoder.flush(
-        user,
         userTrackNo,
         userRecents,
         1,

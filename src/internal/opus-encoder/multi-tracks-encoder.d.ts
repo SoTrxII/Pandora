@@ -11,20 +11,9 @@ export interface IMultiTracksEncoder {
 
   registerNewTrackForUser(userTrackNo: number, user: User): void;
 
-  encodeChunk(
-    user: User,
-    streamNo: number,
-    packetNo: number,
-    chunk: Chunk
-  ): void;
+  encodeChunk(streamNo: number, packetNo: number, chunk: Chunk): void;
 
-  flush(
-    user: User,
-    streamNo: number,
-    queue: Chunk[],
-    ct: number,
-    packetNo: number
-  ): number;
+  flush(streamNo: number, queue: Chunk[], ct: number, packetNo: number): number;
 
   closeStreams(): void;
 }

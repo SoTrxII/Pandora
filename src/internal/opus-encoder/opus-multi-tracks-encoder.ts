@@ -40,6 +40,16 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     OpusMultiTracksEncoder.DISCORD_CHANNEL_NUMBER
   );
 
+  /**
+   * Initialize all files required for the record to be valid.
+   * These are :
+   * - Raw data streams
+   * - List of users streams
+   * - OGG headers streams
+   * - Contextual info file
+   * @param recordId generated record ID. Should be unique
+   * @param details info to write in the info file
+   */
   initStreams(recordId: string, details: IRecordingDetails): void {
     this.assertStorageDirCreated();
     const recordingFullPath = `${OpusMultiTracksEncoder.BASE_STORAGE_DIR}/${recordId}`;
@@ -58,6 +68,11 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     this.fUStream.write('"0":{}\n');
   }
 
+  /**
+   * Add a new user to the list of recorded users
+   * @param userTrackNo Index of the new user track
+   * @param user user info
+   */
   registerNewTrackForUser(userTrackNo: number, user: User): void {
     // Put a valid Opus header at the beginning
     try {
@@ -79,14 +94,14 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     }
   }
 
-  encodeChunk(
-    user: User,
-    streamNo: number,
-    packetNo: number,
-    chunk: Chunk
-  ): void {
+  /**
+   * Main method. Encode a raw discord audio chunk
+   * @param streamNo stream offset
+   * @param packetNo packet index. Should increment by 2, one for each stream (left/right)
+   * @param chunk audio data
+   */
+  encodeChunk(streamNo: number, packetNo: number, chunk: Chunk): void {
     const chunkGranule = chunk.time;
-    // TODO : Check if this is actually used, it seems to be never called
     if (this.hasRTPHeader(chunk)) chunk = this.stripRTPHeader(chunk);
     if (packetNo % 50 === 49) {
       try {
@@ -112,7 +127,6 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
    * Returns the updated packet number for this user
    */
   flush(
-    user: User,
     streamNo: number,
     queue: Chunk[],
     ct: number,
@@ -121,7 +135,7 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     for (let i = 0; i < ct; i++) {
       const chunk = queue.shift();
       try {
-        this.encodeChunk(user, streamNo, packetNo, chunk);
+        this.encodeChunk(streamNo, packetNo, chunk);
         packetNo += 2;
       } catch (ex) {
         console.error(ex);
@@ -130,6 +144,10 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     return packetNo;
   }
 
+  /**
+   * Properly close all open streams.
+   * /!\ This doesn't flush any remaining data /!\
+   */
   closeStreams(): void {
     this.oggHStream[0].end();
     this.oggHStream[1].end();
@@ -137,7 +155,10 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     this.fUStream.end();
   }
 
-  private assertStorageDirCreated() {
+  /**
+   * Create the records directory
+   */
+  assertStorageDirCreated() {
     if (!existsSync(OpusMultiTracksEncoder.BASE_STORAGE_DIR))
       mkdirSync(OpusMultiTracksEncoder.BASE_STORAGE_DIR, { recursive: true });
   }
@@ -145,7 +166,7 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
   /**
    * Write all the stream info into a file. Ths is a later on used in cooking (cook/recinfo.js)
    */
-  private writeInfoFile(fullPath: string, details: IRecordingDetails): void {
+  writeInfoFile(fullPath: string, details: IRecordingDetails): void {
     const infoStream = createWriteStream(fullPath + ".ogg.info", {
       flags: "wx",
     });
@@ -164,7 +185,11 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     infoStream.end();
   }
 
-  private addNewHeader(userTrackNo: number): void {
+  /**
+   * Ad a new header for a newly created user stream
+   * @param userTrackNo
+   */
+  addNewHeader(userTrackNo: number): void {
     this.write(
       this.oggHStream[0],
       0,
@@ -182,7 +207,16 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     );
   }
 
-  private write(
+  /**
+   * Write a chunk in the provided stream
+   * @param stream stream to write into
+   * @param granulePos timestamp
+   * @param streamNo logical stream index
+   * @param packetNo packet number
+   * @param chunk audio data
+   * @param flags flags (8 bits) type of this packet in the logicial bitsream
+   */
+  write(
     stream: OggEncoder,
     granulePos: number,
     streamNo: number,
@@ -193,11 +227,21 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     stream.write(granulePos, streamNo, packetNo, chunk, flags);
   }
 
-  private hasRTPHeader(chunk: Chunk): boolean {
+  /**
+   * return true if the provided chunk has an RTP header
+   * @param chunk
+   */
+  hasRTPHeader(chunk: Chunk): boolean {
     return chunk.length > 4 && chunk[0] === 0xbe && chunk[1] === 0xde;
   }
 
-  private stripRTPHeader(chunk: Chunk): Chunk {
+  /**
+   * Remove the RTP header from the provided Chunk
+   * /!\ use hasRtpHeader method to check if the header is present before
+   * using this method, it will remove some data anyway
+   * @param chunk
+   */
+  stripRTPHeader(chunk: Chunk): Chunk {
     const rtpHLen = chunk.readUInt16BE(2);
     let off = 4;
 
@@ -208,7 +252,6 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
     while (off < chunk.length && chunk[off] === 0) off++;
     if (off >= chunk.length) off = chunk.length;
 
-    const nChunk = chunk.slice(off) as Chunk;
-    return nChunk;
+    return chunk.slice(off) as Chunk;
   }
 }

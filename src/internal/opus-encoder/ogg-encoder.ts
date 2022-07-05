@@ -7,6 +7,15 @@ export class OggEncoder {
 
   constructor(private fstream: Writable) {}
 
+  /**
+   * Write an OGG packet
+   * @see https://xiph.org/ogg/doc/framing.html
+   * @param granulePos (64 bits) position of this packet in the whole file
+   * @param streamNo (8 bits) Logical audio stream this page belongs to
+   * @param packetNo (8 bits)
+   * @param chunk audio data
+   * @param flags (8 bits) type of this packet in the logicial bitsream
+   */
   write(
     granulePos: number,
     streamNo: number,
