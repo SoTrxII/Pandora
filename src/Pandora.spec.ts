@@ -99,6 +99,34 @@ describe("Pandora", () => {
       ).resolves.not.toThrow();
     });
   });
+  describe("End a recording", () => {
+    it("End a recording when not started beforehand", async () => {
+      const logger = getMockedLogger();
+      const pandora = getMockedPandora({
+        // State is empty -> no pending recording
+        stateStore: getMockedStore().empty,
+        logger: logger,
+      });
+      await pandora.bootUp();
+      await expect(
+        pandora.endRecording(Substitute.for<IController>(), undefined)
+      ).resolves.not.toThrow();
+      const lastMessage = logger.getStack().pop();
+      expect(lastMessage.message).toContain("Aborting");
+    });
+    it("End a recording when started beforehand", async () => {
+      const logger = getMockedLogger();
+      const pandora = getMockedPandora({
+        // State is empty -> no pending recording
+        stateStore: getMockedStore().filled,
+        logger: logger,
+      });
+      await pandora.bootUp();
+      await expect(
+        pandora.endRecording(Substitute.for<IController>(), undefined)
+      ).resolves.not.toThrow();
+    });
+  });
 });
 
 function getMockedPandora(
@@ -182,9 +210,19 @@ function getMockedUController() {
 
 function getMockedLogger() {
   const msgStack = [];
-  const logger: Partial<ILogger> = {
+  return {
     debug(message: string, opts?: ILoggerOpts) {
       msgStack.push({ level: "debug", message: message });
     },
+    error(message: string, opts?: ILoggerOpts) {
+      msgStack.push({ level: "error", message: message });
+    },
+    info(message: string, opts?: ILoggerOpts) {
+      msgStack.push({ level: "info", message: message });
+    },
+    warn(message: string, opts?: ILoggerOpts) {
+      msgStack.push({ level: "warn", message: message });
+    },
+    getStack: () => msgStack,
   };
 }
