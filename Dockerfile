@@ -13,6 +13,7 @@ FROM node:current-alpine as prod
 WORKDIR /app
 COPY --from=build /app/dist /app
 RUN apk add --no-cache --virtual=.build-deps alpine-sdk python3 yarn \
+    && apk add ffmpeg \
     && yarn set version berry && grep -qF 'nodeLinker' .yarnrc.yml  || echo "nodeLinker: node-modules" >> .yarnrc.yml \
     && yarn plugin import workspace-tools  \
     && yarn workspaces focus --all --production \
