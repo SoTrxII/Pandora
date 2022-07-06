@@ -64,7 +64,7 @@ describe("Command Broker", () => {
     });
   });
   describe("Process a message", () => {
-    let cb;
+    let cb: CommandBroker;
     beforeAll(async () => {
       cb = await getCommandBroker();
     });
@@ -75,15 +75,10 @@ describe("Command Broker", () => {
           username: "test",
           voiceChannelId: "1",
         })
-      ).rejects;
+      ).rejects.toThrowError("text channel");
       // With this configuration, we should get a text channel undefined error
       // This means that the command has been accepted but the record cannot start
       // this is ok as this isn't what we're testing there
-      await rej.toThrow("text channel");
-
-      // No error should be fired here
-      const errorEventFired = waitEvent<any>(cb, "error");
-      await expect(errorEventFired).resolves;
     });
     it("Unknown command : KO", async () => {
       const rej = await expect(
@@ -223,12 +218,12 @@ describe("Command Broker", () => {
     });
   });
   describe("Provide a coherent state", () => {
-    let cb;
+    let cb: CommandBroker;
     beforeAll(async () => {
       cb = await getCommandBroker();
     });
-    it("Give a valid state at any time", () => {
-      cb.getState();
+    it("Give a valid state at any time", async () => {
+      await cb.getState();
     });
   });
   describe("Validate state", () => {

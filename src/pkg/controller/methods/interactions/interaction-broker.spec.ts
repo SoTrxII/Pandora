@@ -126,10 +126,10 @@ describe("Interactions broker", () => {
     });
   });
   describe("Trivia", () => {
-    it("toString", async () => {
-      const cb = await getInteractionBroker();
+    it("toString", () => {
+      const cb = getInteractionBroker();
       const name = cb.toString();
-      expect(name.toLowerCase()).not.toEqual("[object object]");
+      expect(() => name.toLowerCase()).not.toEqual("[object object]");
     });
   });
 });
