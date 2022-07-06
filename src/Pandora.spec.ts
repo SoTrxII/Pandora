@@ -17,7 +17,7 @@ import { plainTextLogger } from "./pkg/logger/logger-plain-text";
 import { ILogger, ILoggerOpts } from "./pkg/logger/logger-api";
 
 describe("Pandora", () => {
-  /*describe("Boot-up state", () => {
+  describe("Boot-up state", () => {
     it("Do not launch recovery when the state is clean", async () => {
       const pandora = getMockedPandora({ stateStore: getMockedStore().empty });
       await expect(pandora.isResumingFromError()).resolves.toEqual(false);
@@ -34,8 +34,8 @@ describe("Pandora", () => {
       const pandora = getMockedPandora({ stateStore: getMockedStore().filled });
       await expect(pandora.bootUp()).resolves.not.toThrow();
     });
-  });*/
-  /*describe("Resume recording", () => {
+  });
+  describe("Resume recording", () => {
     it("Can recover", async () => {
       const store = getMockedStore().filled;
       const pandora = getMockedPandora({
@@ -45,8 +45,8 @@ describe("Pandora", () => {
       await pandora.resumeRecording();
       // If the recording can resume, the state should be untouched
       expect(store.getState()).not.toEqual(undefined);
-    });*/
-  /* it("Cannot recover", async () => {
+    });
+    it("Cannot recover", async () => {
       const store = getMockedStore().filled;
       const pandora = getMockedPandora({
         unifiedController: getMockedUController().cannotResume,
@@ -60,22 +60,15 @@ describe("Pandora", () => {
       // to a coherent state
       await expect(store.getState()).resolves.toEqual(undefined);
     });
-  });*/
+  });
   describe("Commands", () => {
     it("'start' handler", async () => {
       const pandora = getMockedPandora({ stateStore: getMockedStore().empty });
-      try {
-        await pandora.onStartCommand(undefined, {
+      await expect(
+        pandora.onStartCommand(undefined, {
           voiceChannelId: "2",
-        });
-        throw new Error("Has not thrown");
-      } catch (e) {
-        // If the recording properly started, it should not be able to
-        // get the voiceChannel. Any other error would be weird
-        if (!e.message.toLowerCase().includes("controller is not defined")) {
-          throw e;
-        }
-      }
+        })
+      ).rejects.toThrowError("controller is not defined");
     });
     it("'end' handler", async () => {
       const pandora = getMockedPandora({ stateStore: getMockedStore().empty });
@@ -91,7 +84,7 @@ describe("Pandora", () => {
       }
     });
   });
-  /*describe("Start a recording", () => {
+  describe("Start a recording", () => {
     it("Do not launch recovery when the state is clean", async () => {
       const pandora = getMockedPandora({ stateStore: getMockedStore().empty });
       await pandora.bootUp();
@@ -129,7 +122,7 @@ describe("Pandora", () => {
         pandora.endRecording(Substitute.for<IController>(), undefined)
       ).resolves.not.toThrow();
     });
-  });*/
+  });
 });
 
 function getMockedPandora(
