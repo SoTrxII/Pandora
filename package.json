@@ -18,7 +18,7 @@
     "pretest": "jest --clearCache",
     "test": "jest --config jest.config.json",
     "prebuild": "npx shx rm -rf build/*",
-    "build": "tsc && npx shx cp package.json dist/package.json",
+    "build": "tsc && npx shx cp package.json dist/package.json && npx shx cp -r src/assets dist/",
     "postbuild": "npx shx cp -r src/assets dist/",
     "gen:doc": "typedoc --entryPointStrategy expand ./src",
     "start:dapr": "dapr run --app-id pandora --app-port 50051 --dapr-http-port 3500",
