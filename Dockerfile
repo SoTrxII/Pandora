@@ -11,7 +11,7 @@ RUN yarn run build
 FROM node:current-alpine as prod
 WORKDIR /app
 COPY --from=build /app/dist /app
-RUN apk add --no-cache --virtual=.build-deps alpine-sdk python3 \
+RUN apk add --no-cache --virtual=.build-deps alpine-sdk python3 yarn \
     && yarn set version berry && echo "nodeLinker: node-modules" >> .yarnrc.yml \
     && yarn plugin import workspace-tools  \
     && yarn workspaces focus --all --production \
