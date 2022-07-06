@@ -26,5 +26,11 @@ node_modules
 yarn-error.log
 .idea
 coverage
-.yarn
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
 docs
