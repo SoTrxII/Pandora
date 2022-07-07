@@ -1,11 +1,11 @@
-name: Build and push image to github registry
+name: Build new image and create a new release
 
 on:
   push:
     tags:
       - '*'
 jobs:
-  func-build:
+  image-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,3 +36,12 @@ jobs:
         with:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/pandora:${{ steps.define_env.outputs.tag }}
+
+  create-release:
+    needs: image-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
