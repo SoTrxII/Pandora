@@ -21,7 +21,7 @@
     "build": "tsc && npx shx cp package.json dist/package.json && npx shx cp -r src/assets dist/",
     "postbuild": "npx shx cp -r src/assets dist/",
     "gen:doc": "typedoc --entryPointStrategy expand ./src",
-    "start:dapr": "dapr run --app-id pandora --app-port 50051 --dapr-http-port 3500",
+    "start:dapr": "dapr run --app-id pandora --app-port 50051 --dapr-http-port 3500 --components-path ./dapr/components",
     "start:dev": "npm run build && node -r dotenv-safe/config dist/main.js "
   },
   "dependencies": {
