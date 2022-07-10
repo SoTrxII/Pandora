@@ -9,7 +9,7 @@
     //"inlineSources": true,
     "declaration": false,
     "module": "commonjs",
-    "target": "es2017",
+    "target": "es2022",
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
