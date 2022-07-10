@@ -1,0 +1,26 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: object-store
+spec:
+  type: bindings.aws.s3
+  version: v1
+  metadata:
+    - name: bucket
+      value: recordings-test
+    - name: region
+      value: us-east-1
+    - name: endpoint
+      value: http://localhost:9000
+    - name: forcePathStyle
+      value: true
+    - name: disableSSL
+      value: true
+    - name: encodeBase64
+      value: true
+    - name: decodeBase64
+      value: true
+    - name: accessKey
+      value: "XnZwvzujlWEzBG5T"
+    - name: secretKey
+      value: "9p2dKraexj5RzN7kHV9S9H2EAj7RSI9o"
