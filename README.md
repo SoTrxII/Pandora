@@ -19,10 +19,6 @@ The number of cooking servers can then be increased along with the workload.
 
 ## Usage
 
-```shell
-dapr init
-```
-
 There are three ways to use Pandora. Using text-based commands, interactions, or pub/sub messages
 component to begin/end the recording. See [configuration section](#configuration).
 
@@ -76,18 +72,19 @@ The acknowledgment will be sent on the topic `recordingDiscordStopped`.
 
 ![Architecture](./resources/images/architecture.png)
 
-Pandora uses 4 modules:
+Pandora uses 5 modules:
 
 - The **audio recorder** itself, capturing RTP packets from Discord and storing the raw OGG packets in a set of text files.
 - The **UnifiedController**, an event-based interface to handle how to start/end a recording. So far, the bot can be
   controlled either by text commands, interactions or pub/sub messages.
 - An external **state store**. Catching errors from Discord voice connections has always been very tedious,
   this store saves the current recording state and leaves the bot reboot to get a clean state.
-- A **logger**. Plain text loggin is used in development, [ECS format](https://www.elastic.co/guide/en/ecs/current/index.html) is used in production.
+- A **logger**. Plain text logging is used in development, [ECS format](https://www.elastic.co/guide/en/ecs/current/index.html) is used in production.
+- An **Object Store**. This is to allow for the bot itself to scale, as it removes the need for a shared volume between it and the cooking server
 
 ## Configuration
 
-Pandora uses 4 environment variables to control its runtime behaviour.
+Pandora uses 5 environment variables to control its runtime behaviour.
 
 ```dotenv
 # Discord bot token
@@ -97,6 +94,7 @@ COMMAND_PREFIX=<COMMAND_PREFIX>
 # Dapr components names
 PUBSUB_NAME=<DAPR_COMPONENT_PUBSUB>
 STORE_NAME=<DAPR_COMPONENT_STORE>
+OBJECT_STORE_NAME=<DAPR_COMPONENT_OBJECT_STORE>
 ```
 
 #### Dapr
@@ -104,29 +102,36 @@ STORE_NAME=<DAPR_COMPONENT_STORE>
 [Dapr](https://github.com/dapr/dapr) is used a decoupling solution. Dapr uses **components** to define the implementation
 of some part of the application at runtime using a [sidecar architecture.](https://medium.com/nerd-for-tech/microservice-design-pattern-sidecar-sidekick-pattern-dbcea9bed783)
 
-Pandora uses two Dapr components, a [pub/sub component](https://docs.dapr.io/operations/components/setup-pubsub/) and a [state store component](https://docs.dapr.io/reference/components-reference/supported-state-stores/).
-
 These components are YAML files mounted in the sidecar as a volume. You can find a sample deployment
-using these components in the [sample implementation](#full-discord-recording-implementation) section.
+using these components in the [sample implementation](#minimal-deployment) section.
 
-```yaml
-# A sample pubsub component using Redis
-# as a backend
-apiVersion: dapr.io/v1alpha1
-kind: Component
-metadata:
-  name: pubsub
-spec:
-  type: pubsub.redis
-  version: v1
-  metadata:
-    - name: redisHost
-      value: redis:6379
-    - name: redisPassword
-      value: ""
+## Minimal deployment
+
+There are multiple ways to deploy Pandora. This section will focus on the simplest way and will have the following features :
+
+- Starting / Ending a recording with text commands/interaction
+- Retrieve a record with the [cooking server](https://github.com/SoTrxII/Pandora-cooking-server)
+- Using the state store, it should be able to reboot and retry if Discord voice connection crashes
+
+I'll explain why you might want to add some components later
+
+This example deployment will use docker-compose, but any orchestrator will do.
+
+First, create in any directory the following hierarchy:
+
+```tree
+.
+├── components
+│   └── state-store.yml
+└── docker-compose.yml
 ```
 
+Then:
+
+- paste this in **./components/statestore**
+
 ```yaml
+#./components/state-store.yaml
 # A sample statestore component using Redis
 # as a backend
 apiVersion: dapr.io/v1alpha1
@@ -143,18 +148,12 @@ spec:
       value: ""
 ```
 
-## Full discord recording implementation
-
-Pandora's records are stored in the `rec` directory. The cooking server is also looking for
-records in its own `rec` directory.
-The simplest way to share these directories is by using a **volume**.
-
-Here is an example Docker-compose configuration using both projects Docker images :
+- paste this in **docker-compose.yml**, and **fill the <...> variables**
 
 ```yaml
 version: "3.7"
 services:
-  # Record a voice channel into raw files
+  # The bot itself, record into raw, unusable files
   pandora:
     image: sotrx/pandora:2.0.0
     container_name: pandora
@@ -164,9 +163,8 @@ services:
       - PANDORA_TOKEN=<DISCORD_TOKEN>
       # Prefix for text-based command
       - COMMAND_PREFIX=<COMMAND_PREFIX>
-      # Dapr components names
-      - PUBSUB_NAME=<DAPR_COMPONENT_PUBSUB>
-      - STORE_NAME=<DAPR_COMPONENT_STORE>
+      # Dapr component for state storage
+      - STORE_NAME=statestore
     volumes:
       - pandora_recordings:/rec
     networks:
@@ -186,6 +184,8 @@ services:
         "-components-path",
         "/components",
       ]
+    # In docker-compose, you have to provide components by sharing a volume
+    # this is the dapr/components directory
     volumes:
       - "./components/:/components"
     depends_on:
@@ -195,15 +195,19 @@ services:
   # Converts the raw files into audio files
   pandora-cooking-server:
     # This one hasn't been uploaded on dockerhub yet
+    # Be aware that you must be connected to your github account to be 
+    # able to pull from the Github Container Registry
     image: ghcr.io/sotrxii/pandora-cooking-server/pandora-cooking-server:latest
     container_name: pandora-cooking-server
+    ports:
+      - "3004:3004"
     restart: always
     volumes:
       - pandora_recordings:/app/rec
     networks:
       - discord_recordings
 
-  # Pub/Sub broker && state store
+  # State store
   redis:
     image: "redis:alpine"
     networks:
@@ -217,4 +221,41 @@ volumes:
 # so we create a new one
 networks:
   discord_recordings:
+```
+
+You can then start the bot with
+
+```
+docker-compose up -d
+```
+
+Upon starting a recording with either a slash command or a text command, 
+pandora will emit a message with this format :
+````shell
+Recording started with id <ID>
+````
+
+Once you ended the recording session, you can get the audio files using the exposed port of the cooking server.
+
+Open a browser and type 
+```
+localhost:3004/<ID>
+```
+to retrieve the recording in the default format (OGG, mixed as a single track)
+
+
+#### Limitations
+This deployment is simple but lack two features :
+
+- Starting / Ending a recording with Pub/Sub
+- Using an external object storage solution (such as Amazon S3) to store the recordings. Using a volume prevent the bot/cooking server to be able to scale properly
+
+These more robust deployments are explained in the [deploying](docs/deploying.md) doc.
+
+## Local development
+
+Aside from Dapr, the only service to start is minio.
+
+```sh
+ docker run -p 9000:9000 -p 9001:9001 minio/minio server /data --console-address ":9001"
 ```
