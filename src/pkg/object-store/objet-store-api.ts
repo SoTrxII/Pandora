@@ -1,4 +1,44 @@
 /**
+ * Interface to store and retrieve object from a remote location
+ */
+export interface IObjectStore {
+  /**
+   * Store the given files into the remote object storage
+   * Files are uploaded with their basename as a key
+   * If a file with the same key already exists, it will be overwritten
+   * /!\ All files have to be buffered into memory before being uploaded /!\
+   * @param filePaths files to upload
+   * @throws Error if any of the files doesn't exist
+   * @throws ObjectStoreError if any of the files wasn't uploaded
+   * @returns number of file uploaded
+   */
+  create(...filePaths: string[]): Promise<number>;
+
+  /**
+   * Retrieve the given files from the remote object storage
+   * /!\ All files data will have to be buffered into memory as a base 64 string /!\
+   * @see https://github.com/dapr/components-contrib/issues/1487
+   * @throws ObjectStoreError if any of the files doesn't exist on the storage backend
+   * @param filenames
+   */
+  retrieve(...filenames: string[]): Promise<Map<string, Buffer>>;
+
+  /**
+   * Remove the given files from the remote object storage
+   * Attempting to delete a non-existing file will just ignore the deletion
+   * @throws ObjectStoreError if any deletion failed
+   * @param filenames
+   */
+  delete(...filenames: string[]): Promise<void>;
+
+  /**
+   * List all files in the remote object storage
+   * @param opt
+   */
+  list(opt?: Partial<IBucketListingOptions>): Promise<IBucketListing>;
+}
+
+/**
  * Error throw when a problem was detected with the stoarge backend
  */
 export class ObjectStoreError extends Error {}

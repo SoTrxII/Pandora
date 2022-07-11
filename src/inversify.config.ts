@@ -30,6 +30,12 @@ import {
 import { DaprServerAdapter } from "./pkg/controller/methods/pub-sub/dapr-server-adapter";
 import { InteractionBroker } from "./pkg/controller/methods/interactions/interaction-broker";
 import { Client, Constants } from "eris";
+import {
+  IObjectStore,
+  IObjectStoreProxy,
+} from "./pkg/object-store/objet-store-api";
+import { DaprObjectStorageAdapter } from "./pkg/object-store/dapr-object-storage-adapter";
+import { ExternalObjectStore } from "./pkg/object-store/external-objet-store";
 
 export const container = new Container();
 
@@ -61,6 +67,21 @@ container
     )
   );
 
+/** Object Store */
+const objComponent = process.env?.OBJECT_STORE_NAME;
+// Only register the Object Store component of the Dapr component name was supplied
+if (objComponent) {
+  container
+    .bind<IObjectStoreProxy>(TYPES.ObjectStoreProxy)
+    .toConstantValue(
+      new DaprObjectStorageAdapter(
+        new DaprClient().binding,
+        process.env.OBJECT_STORE_NAME
+      )
+    );
+  container.bind<IObjectStore>(TYPES.ObjectStore).to(ExternalObjectStore);
+}
+
 /** PubSub Interface */
 // Only register the Pub/Sub broker if the dapr component name was provided
 const PSComponent = process.env?.PUBSUB_NAME;
@@ -87,8 +108,6 @@ container.bind(TYPES.ClientProvider).toProvider((context) => {
   return () => {
     return new Promise((res, rej) => {
       const client = new Eris.Client(process.env.PANDORA_TOKEN);
-      //client.on("error", (e) => console.log(e));
-      //client.on("debug", (d) => console.log(d));
       if (client.ready) res(client);
       client.connect();
       client.on("ready", () => {
@@ -103,17 +122,21 @@ container.bind(TYPES.ClientProvider).toProvider((context) => {
   };
 });
 
-/** Command Interface */
-container.bind<IController>(TYPES.Controller).toDynamicValue((context) => {
-  return new CommandBroker(
-    process.env.COMMAND_PREFIX,
-    context.container.get<() => Promise<IBotImpl>>(TYPES.ClientProvider),
-    {
-      start: "record",
-      end: "end",
-    }
-  );
-});
+const commandPrefix = process.env?.COMMAND_PREFIX;
+// Only use the command interface of the command prefix was provided
+if (commandPrefix) {
+  /** Command Interface */
+  container.bind<IController>(TYPES.Controller).toDynamicValue((context) => {
+    return new CommandBroker(
+      process.env.COMMAND_PREFIX,
+      context.container.get<() => Promise<IBotImpl>>(TYPES.ClientProvider),
+      {
+        start: "record",
+        end: "end",
+      }
+    );
+  });
+}
 
 /** Interaction Interface */
 container.bind<IController>(TYPES.Controller).toDynamicValue((context) => {
@@ -146,6 +169,7 @@ container
       container.get<IUnifiedBotController>(TYPES.UnifiedController),
       container.get<IRecorderService>(TYPES.AudioRecorder),
       container.get<IRecordingStore>(TYPES.StateStore),
+      container.get<IObjectStore>(TYPES.ObjectStore),
       container.get<ILogger>(TYPES.Logger)
     )
   );

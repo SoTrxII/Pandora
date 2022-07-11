@@ -8,6 +8,7 @@ export const TYPES = {
   StoreProxy: Symbol.for("StoreProxy"),
   StateStore: Symbol.for("StateStore"),
   ObjectStoreProxy: Symbol.for("ObjectStoreProxy"),
+  ObjectStore: Symbol.for("ObjectStore"),
   PubSubClientProxy: Symbol.for("PubSubClientProxy"),
   PubSubServerProxy: Symbol.for("PubSubServerProxy"),
   ClientProvider: Symbol.for("ClientProvider"),

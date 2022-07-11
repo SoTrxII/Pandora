@@ -15,6 +15,7 @@ import {
 } from "./pkg/state-store/state-store.api";
 import { plainTextLogger } from "./pkg/logger/logger-plain-text";
 import { ILogger, ILoggerOpts } from "./pkg/logger/logger-api";
+import { IObjectStore } from "./pkg/object-store/objet-store-api";
 
 describe("Pandora", () => {
   describe("Boot-up state", () => {
@@ -54,8 +55,7 @@ describe("Pandora", () => {
       });
       try {
         await pandora.resumeRecording();
-
-      }catch (e){}
+      } catch (e) {}
       // If the recording can't resume, we have to clean up the state to return
       // to a coherent state
       await expect(store.getState()).resolves.toEqual(undefined);
@@ -131,6 +131,7 @@ function getMockedPandora(
     unifiedController: any;
     audioRecorder: any;
     stateStore: any;
+    objStore: any;
     logger: any;
   }>
 ) {
@@ -139,6 +140,7 @@ function getMockedPandora(
     unifiedController: Substitute.for<IUnifiedBotController>(),
     audioRecorder: Substitute.for<IRecorderService>(),
     stateStore: Substitute.for<IRecordingStore>(),
+    objStore: Substitute.for<IObjectStore>(),
     logger: plainTextLogger,
   };
   const opt = Object.assign(defaults, overrides);
@@ -151,6 +153,7 @@ function getMockedPandora(
     opt.unifiedController,
     opt.audioRecorder,
     opt.stateStore,
+    opt.objStore,
     opt.logger
   );
 }

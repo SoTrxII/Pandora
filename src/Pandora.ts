@@ -12,10 +12,16 @@ import {
   IRecordingState,
   IRecordingStore,
 } from "./pkg/state-store/state-store.api";
-import { IRecorderService } from "./pkg/audio-recorder/audio-recorder-api";
+import {
+  AccurateTime,
+  IRecorderService,
+} from "./pkg/audio-recorder/audio-recorder-api";
 import { InvalidRecorderStateError } from "./pkg/audio-recorder/audio-recorder";
 import { ILogger } from "./pkg/logger/logger-api";
 import { exit } from "process";
+import { IObjectStore } from "./pkg/object-store/objet-store-api";
+import { join } from "path";
+import { readdir } from "fs/promises";
 
 @injectable()
 export class Pandora {
@@ -33,9 +39,21 @@ export class Pandora {
     @inject(TYPES.AudioRecorder) private audioRecorder: IRecorderService,
     /** State storage to handle disaster recovery */
     @inject(TYPES.StateStore) private stateStore: IRecordingStore,
+    /** Object storage to store recording files */
+    @inject(TYPES.ObjectStore) private objectStore: IObjectStore,
     /** Logging interface */
     @inject(TYPES.Logger) private logger: ILogger
-  ) {}
+  ) {
+    if (this.objectStore === undefined)
+      this.logger.info(
+        "Object store undefined, recording will be kept on the container filesystem"
+      );
+    else {
+      this.logger.info(
+        `Object store used, record will be uploaded on the storage backend`
+      );
+    }
+  }
 
   async bootUp(): Promise<void> {
     this.client = await this.clientProvider();
@@ -164,7 +182,7 @@ export class Pandora {
     if (currentState !== undefined) {
       // a start event was fired while the bot is already recording...
       if (!this.isResumingRecord) {
-        await this.logger.info(
+        this.logger.info(
           `A recording attempt was denied : Bot is already recording`
         );
         await c.sendMessage(
@@ -176,7 +194,7 @@ export class Pandora {
       await c.sendMessage(
         "Recovered from discord stream failure, now recording again ! "
       );
-      await this.logger.info("Recovered from recording failure");
+      this.logger.info("Recovered from recording failure");
     }
     // Past this point, reset the bot to a non recovery state
     this.isResumingRecord = false;
@@ -246,6 +264,7 @@ export class Pandora {
     if (c === undefined) {
       throw new Error("Unexpected error, controller is not defined");
     }
+    //    -> Now check if the record was started by the same controller
     const currentState = await this.stateStore.getState();
     if (currentState === undefined) {
       this.logger.info(
@@ -254,18 +273,15 @@ export class Pandora {
       await c.sendMessage("No recording ");
       return;
     }
-    // end record
+
+    let startTime: AccurateTime;
+    // Everything is alright, ending the record session
     try {
-      const startTime = this.audioRecorder.stopRecording();
+      startTime = this.audioRecorder.stopRecording();
       // Preventing multiple event handler to be registered across multiple sessions
       this.audioRecorder.removeAllListeners("error");
       this.audioRecorder.removeAllListeners("debug");
       await c.sendMessage(`Recording stopped successfully !`);
-      await c.signalState(RECORD_EVENT.STOPPED, {
-        recordsIds: currentState.recordsIds,
-        // TODO : Startime is the startime of the last record, not the first
-        startTime: startTime,
-      });
     } catch (e) {
       switch (e.constructor.name) {
         case InvalidRecorderStateError.name:
@@ -286,8 +302,30 @@ export class Pandora {
     } catch (e) {
       // We don't care if this fails
     }
-    // Record ended successfully, reset the state
+    // Record ended successfully, reset the state so we can record again
     await this.stateStore.deleteState();
+
+    // Last Step : If an object storage was provided, upload the records files onto it
+    if (this.objectStore !== undefined) {
+      try {
+        await c.sendMessage(`Uploading records...`);
+        this.logger.info("Uploading the records...");
+        const nbFilesUploaded = await this.saveInObjectStore(
+          currentState.recordsIds
+        );
+        if (nbFilesUploaded === 0)
+          this.logger.warn(`Could not find any record files to upload`);
+        await c.sendMessage(`Records uploaded !`);
+      } catch (e) {
+        this.logger.error(`Error while uploading records files`, e);
+      }
+    }
+    await c.sendMessage(`Recording session ended successfully !`);
+    await c.signalState(RECORD_EVENT.STOPPED, {
+      recordsIds: currentState.recordsIds,
+      // TODO : Startime is the startime of the last record, not the first
+      startTime: startTime,
+    });
   }
 
   async handleRecorderError(c: IController, err: Error): Promise<never> {
@@ -343,5 +381,27 @@ export class Pandora {
       controllerState: await c.getState(),
       voiceChannelId,
     });
+  }
+
+  /**
+   * Attempt to save every records files matching the provided ids
+   * @param recordsIds
+   * @return number of files uploaded
+   */
+  async saveInObjectStore(recordsIds: string[]): Promise<number> {
+    if (this.objectStore === undefined)
+      throw new Error("Object store is undefined ! Aborting !");
+
+    const recordsDir = this.audioRecorder.getRecordingsDirectory();
+    // Find all recordings files...
+    const files = (await readdir(recordsDir))
+      // Having any of the recordings IDs in their name...
+      .filter((f) => recordsIds.some((id) => f.includes(id)))
+      // And return their full path
+      .map((f) => join(recordsDir, f));
+
+    // If some files are found, upload them on the storage backend
+    if (files.length === 0) return 0;
+    return await this.objectStore.create(...files);
   }
 }

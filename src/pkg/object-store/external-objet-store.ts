@@ -17,16 +17,6 @@ export class ExternalObjectStore {
     private readonly objStoreProxy: IObjectStoreProxy
   ) {}
 
-  /**
-   * Store the given files into the remote object storage
-   * Files are uploaded with their basename as a key
-   * If a file with the same key already exists, it will be overwritten
-   * /!\ All files have to be buffered into memory before being uploaded /!\
-   * @param filePaths files to upload
-   * @throws Error if any of the files doesn't exist
-   * @throws ObjectStoreError if any of the files wasn't uploaded
-   * @returns number of file uploaded
-   */
   async create(...filePaths: string[]): Promise<number> {
     await this.assertFileExists(...filePaths);
 
@@ -44,13 +34,6 @@ export class ExternalObjectStore {
     return uploads.length;
   }
 
-  /**
-   * Retrieve the given files from the remote object storage
-   * /!\ All files data will have to be buffered into memory as a base 64 string /!\
-   * @see https://github.com/dapr/components-contrib/issues/1487
-   * @throws ObjectStoreError if any of the files doesn't exist on the storage backend
-   * @param filenames
-   */
   async retrieve(...filenames: string[]): Promise<Map<string, Buffer>> {
     // Attempt to download all files concurrently
     const downloads = await Promise.allSettled(
@@ -74,12 +57,6 @@ export class ExternalObjectStore {
     return fileMap;
   }
 
-  /**
-   * Remove the given files from the remote object storage
-   * Attempting to delete a non-existing file will just ignore the deletion
-   * @throws ObjectStoreError if any deletion failed
-   * @param filenames
-   */
   async delete(...filenames: string[]): Promise<void> {
     // Attempt to delete all files concurrently
     const deletions = await Promise.allSettled(
@@ -96,10 +73,6 @@ export class ExternalObjectStore {
       );
   }
 
-  /**
-   * List all files in the remote object storage
-   * @param opt
-   */
   async list(opt?: Partial<IBucketListingOptions>): Promise<IBucketListing> {
     try {
       return (await this.objStoreProxy.list(opt)) as IBucketListing;
