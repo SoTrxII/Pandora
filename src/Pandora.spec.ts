@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import "reflect-metadata";
 import { Pandora } from "./Pandora";
-import { Substitute } from "@fluffy-spoon/substitute";
+import { Arg, Substitute } from "@fluffy-spoon/substitute";
 import { Client } from "eris";
 import {
   IController,
@@ -16,6 +16,11 @@ import {
 import { plainTextLogger } from "./pkg/logger/logger-plain-text";
 import { ILogger, ILoggerOpts } from "./pkg/logger/logger-api";
 import { IObjectStore } from "./pkg/object-store/objet-store-api";
+import { tmpdir } from "os";
+import { mkdtemp, rm, writeFile } from "fs/promises";
+import { join } from "path";
+
+const FAKE_RECORD_ID = "1";
 
 describe("Pandora", () => {
   describe("Boot-up state", () => {
@@ -96,6 +101,16 @@ describe("Pandora", () => {
     });
   });
   describe("End a recording", () => {
+    let fakeRecordingDir: string;
+    beforeAll(async () => {
+      fakeRecordingDir = await mkdtemp(join(tmpdir(), "r-"));
+      // Prep'ing fake records files
+      await writeFile(join(fakeRecordingDir, `${FAKE_RECORD_ID}.ogg`), "test");
+      await writeFile(
+        join(fakeRecordingDir, `${FAKE_RECORD_ID}.ogg.info`),
+        "test"
+      );
+    });
     it("End a recording when not started beforehand", async () => {
       const logger = getMockedLogger();
       const pandora = getMockedPandora({
@@ -110,17 +125,47 @@ describe("Pandora", () => {
       const lastMessage = logger.getStack().pop();
       expect(lastMessage.message).toContain("Aborting");
     });
+
     it("End a recording when started beforehand", async () => {
       const logger = getMockedLogger();
+      const audioRecorder = Substitute.for<IRecorderService>();
+      // Override recording dir to allow Pandora to actually read files
+      audioRecorder.getRecordingsDirectory().returns(fakeRecordingDir);
       const pandora = getMockedPandora({
         // State is empty -> no pending recording
         stateStore: getMockedStore().filled,
         logger: logger,
+        audioRecorder: audioRecorder,
       });
       await pandora.bootUp();
       await expect(
         pandora.endRecording(Substitute.for<IController>(), undefined)
       ).resolves.not.toThrow();
+
+      console.log(logger.getStack());
+    });
+
+    it("End a recording without an object storage", async () => {
+      const logger = getMockedLogger();
+      //const audioRecorder = Substitute.for<IRecorderService>();
+      // Override recording dir to allow Pandora to actually read files
+      //audioRecorder.getRecordingsDirectory().returns(fakeRecordingDir);
+      const pandora = getMockedPandora({
+        // State is empty -> no pending recording
+        stateStore: getMockedStore().filled,
+        logger: logger,
+        // Unload the object store
+        objStore: undefined,
+      });
+      await pandora.bootUp();
+      await expect(
+        pandora.endRecording(Substitute.for<IController>(), undefined)
+      ).resolves.not.toThrow();
+
+      console.log(logger.getStack());
+    });
+    afterAll(async () => {
+      await rm(fakeRecordingDir, { recursive: true });
     });
   });
 });
@@ -166,7 +211,7 @@ function getMockedStore() {
     },
   };
   let value: IRecordingState = {
-    recordsIds: ["1"],
+    recordsIds: [FAKE_RECORD_ID],
     voiceChannelId: "1",
     controllerState: { name: "TEST" },
   } as IRecordingState;
@@ -209,18 +254,37 @@ function getMockedUController() {
 
 function getMockedLogger() {
   const msgStack = [];
+
+  function includeErrIn(message: string, err: Error): string {
+    // Args should be immutable
+    let content = message;
+    if (err !== undefined) content += err.toString();
+    return content;
+  }
   return {
     debug(message: string, opts?: ILoggerOpts) {
-      msgStack.push({ level: "debug", message: message });
+      msgStack.push({
+        level: "debug",
+        message: includeErrIn(message, opts?.err),
+      });
     },
     error(message: string, opts?: ILoggerOpts) {
-      msgStack.push({ level: "error", message: message });
+      msgStack.push({
+        level: "error",
+        message: includeErrIn(message, opts?.err),
+      });
     },
     info(message: string, opts?: ILoggerOpts) {
-      msgStack.push({ level: "info", message: message });
+      msgStack.push({
+        level: "info",
+        message: includeErrIn(message, opts?.err),
+      });
     },
     warn(message: string, opts?: ILoggerOpts) {
-      msgStack.push({ level: "warn", message: message });
+      msgStack.push({
+        level: "warn",
+        message: includeErrIn(message, opts?.err),
+      });
     },
     getStack: () => msgStack,
   };

@@ -321,6 +321,8 @@ export class Pandora {
       }
     }
     await c.sendMessage(`Recording session ended successfully !`);
+
+    this.logger.info(`Recording ended successfully!`);
     await c.signalState(RECORD_EVENT.STOPPED, {
       recordsIds: currentState.recordsIds,
       // TODO : Startime is the startime of the last record, not the first
