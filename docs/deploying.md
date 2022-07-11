@@ -32,7 +32,7 @@ version: "3.7"
 services:
   # The bot itself, record into raw, unusable files
   pandora:
-    image: sotrx/pandora:2.0.0
+    image: sotrx/pandora:2.1.0
     container_name: pandora
     restart: always
     environment:
@@ -158,7 +158,7 @@ version: "3.7"
 services:
   # The bot itself, record into raw, unusable files
   pandora:
-    image: sotrx/pandora:2.0.0
+    image: sotrx/pandora:2.1.0
     container_name: pandora
     restart: always
     environment:

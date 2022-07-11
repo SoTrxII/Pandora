@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/SoTrxII/Pandora/actions/workflows/publish-coverage.yml/badge.svg)
 [![codecov](https://codecov.io/gh/SoTrxII/Pandora/branch/master/graph/badge.svg?token=YI8X1HA6I7)](https://codecov.io/gh/SoTrxII/roll20-scrapper)
-[![Docker Image Size](https://badgen.net/docker/size/sotrx/pandora/2.0.0?icon=docker&label=pandora)](https://hub.docker.com/r/sotrx/pandora/)
+[![Docker Image Size](https://badgen.net/docker/size/sotrx/pandora/2.1.0?icon=docker&label=pandora)](https://hub.docker.com/r/sotrx/pandora/)
 
 Pandora is a multi-track Discord voice recorder written in Typescript. This project should actually be considered as a
 partial fork of [Yahweasel's Craig](https://github.com/Yahweasel/craig), as the recording process is pretty much the
@@ -155,7 +155,7 @@ version: "3.7"
 services:
   # The bot itself, record into raw, unusable files
   pandora:
-    image: sotrx/pandora:2.0.0
+    image: sotrx/pandora:2.1.0
     container_name: pandora
     restart: always
     environment:
