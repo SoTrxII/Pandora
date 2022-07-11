@@ -236,4 +236,8 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
       this.userPacketNos.set(user.id, newPacketNo);
     }
   }
+
+  getRecordingsDirectory(): string {
+    return this.multiTracksEncoder.getRecordingsDirectory();
+  }
 }

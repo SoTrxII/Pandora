@@ -52,5 +52,8 @@ describe("Audio Recorder", () => {
     it("Adapt Chunk", () => {
       ar.adaptChunk(Buffer.from([0]), "1", Date.now());
     });
+    it("Get base recordings dir", () => {
+      expect(() => ar.getRecordingsDirectory()).not.toBeUndefined();
+    });
   });
 });

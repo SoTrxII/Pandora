@@ -16,4 +16,6 @@ export interface IMultiTracksEncoder {
   flush(streamNo: number, queue: Chunk[], ct: number, packetNo: number): number;
 
   closeStreams(): void;
+
+  getRecordingsDirectory(): string;
 }

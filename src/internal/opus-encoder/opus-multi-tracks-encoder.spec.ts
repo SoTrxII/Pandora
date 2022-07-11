@@ -114,5 +114,7 @@ describe("Multi track encoder", () => {
     expect(() => mte.flush(0, [], 0, 0)).not.toThrow();
   });
 
-  describe("Register new track", () => {});
+  it("Get the recording basedir", () => {
+    expect(() => mte.getRecordingsDirectory()).not.toBeUndefined()
+  });
 });

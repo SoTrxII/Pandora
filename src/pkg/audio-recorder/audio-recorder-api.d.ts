@@ -28,6 +28,11 @@ export interface IRecorderService {
    * @param event event to remove handlers
    */
   removeAllListeners(event: "error" | "debug"): this;
+
+  /**
+   * Return the base path of the recording directory
+   */
+  getRecordingsDirectory(): string;
 }
 
 export interface Chunk extends Buffer {

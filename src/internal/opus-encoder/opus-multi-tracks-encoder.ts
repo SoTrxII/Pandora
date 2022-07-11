@@ -254,4 +254,11 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
 
     return chunk.slice(off) as Chunk;
   }
+
+  /**
+   * Return the basepath for any recordings
+   */
+  getRecordingsDirectory(): string {
+    return OpusMultiTracksEncoder.BASE_STORAGE_DIR;
+  }
 }
