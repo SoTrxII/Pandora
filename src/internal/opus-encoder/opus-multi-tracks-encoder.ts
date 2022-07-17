@@ -178,7 +178,7 @@ export class OpusMultiTracksEncoder implements IMultiTracksEncoder {
       // TODO : Although this doesn't seems to be used, maybe include the actual requester ?
       requester: "anUser#433443",
       requesterId: "1111111111111",
-      startTime: new Date().toISOString(),
+      startTime: String(new Date().getTime()),
     };
     Object.assign(info, details);
     infoStream.write(JSON.stringify(info));
