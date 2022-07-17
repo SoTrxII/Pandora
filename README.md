@@ -1,7 +1,7 @@
 # Pandora: Discord recorder
 
 ![CI](https://github.com/SoTrxII/Pandora/actions/workflows/publish-coverage.yml/badge.svg)
-[![codecov](https://codecov.io/gh/SoTrxII/Pandora/branch/master/graph/badge.svg?token=YI8X1HA6I7)](https://codecov.io/gh/SoTrxII/roll20-scrapper)
+[![codecov](https://codecov.io/gh/SoTrxII/Pandora/branch/master/graph/badge.svg?token=YI8X1HA6I7)](https://codecov.io/gh/SoTrxII/Pandora)
 [![Docker Image Size](https://badgen.net/docker/size/sotrx/pandora/2.1.0?icon=docker&label=pandora)](https://hub.docker.com/r/sotrx/pandora/)
 
 Pandora is a multi-track Discord voice recorder written in Typescript. This project should actually be considered as a
@@ -195,7 +195,7 @@ services:
   # Converts the raw files into audio files
   pandora-cooking-server:
     # This one hasn't been uploaded on dockerhub yet
-    # Be aware that you must be connected to your github account to be 
+    # Be aware that you must be connected to your github account to be
     # able to pull from the Github Container Registry
     image: ghcr.io/sotrxii/pandora-cooking-server/pandora-cooking-server:latest
     container_name: pandora-cooking-server
@@ -229,33 +229,28 @@ You can then start the bot with
 docker-compose up -d
 ```
 
-Upon starting a recording with either a slash command or a text command, 
+Upon starting a recording with either a slash command or a text command,
 pandora will emit a message with this format :
-````shell
+
+```shell
 Recording started with id <ID>
-````
+```
 
 Once you ended the recording session, you can get the audio files using the exposed port of the cooking server.
 
-Open a browser and type 
+Open a browser and type
+
 ```
 localhost:3004/<ID>
 ```
+
 to retrieve the recording in the default format (OGG, mixed as a single track)
 
-
 #### Limitations
+
 This deployment is simple but lack two features :
 
 - Starting / Ending a recording with Pub/Sub
 - Using an external object storage solution (such as Amazon S3) to store the recordings. Using a volume prevent the bot/cooking server to be able to scale properly
 
 These more robust deployments are explained in the [deploying](docs/deploying.md) doc.
-
-## Local development
-
-Aside from Dapr, the only service to start is minio.
-
-```sh
- docker run -p 9000:9000 -p 9001:9001 minio/minio server /data --console-address ":9001"
-```
