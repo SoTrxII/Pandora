@@ -136,7 +136,7 @@ export class AudioRecorder implements IRecorderService {
     const guild = this.voiceChannel.guild;
     this.multiTracksEncoder.initStreams(recordId, {
       guild: `${guild.name}#${guild.id}`,
-      channel: `${this.voiceChannel.name}#${this.voiceChannel.id}`,
+      channel: `${this.voiceChannel.name}`,
     });
     this.voiceConnection = await this.joinVoiceChannel();
     this.voiceConnection.play(resolve(__dirname, "../assets/welcome.opus"));
