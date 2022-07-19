@@ -49,12 +49,26 @@ describe("PubSub broker", () => {
     });
   });
   describe("Own state", () => {
-    it("Give a valid state", async () => {
+    it("Give a valid state at rest", async () => {
       const state = await broker.getState();
       expect(state.name).toEqual(broker.toString());
-      expect(state.data).toBeUndefined();
+      expect(state.data).toEqual({
+        recVoiceChannelId: undefined,
+      });
+    });
+    it("Give a valid state while recording", async () => {
+      await expect(
+        broker.attemptStartEvent(goodStartPayloads[0])
+      ).resolves.not.toThrow();
+      const state = await broker.getState();
+      expect(state.name).toEqual(broker.toString());
+      expect(state.data).not.toBeUndefined();
+      expect(state.data.recVoiceChannelId).toEqual(
+        goodStartPayloads[0].voiceChannelId
+      );
     });
     describe("Resuming from state", () => {
+      const cb = getMockedPSBroker();
       const invalidStates: IControllerState[] = [
         {
           name: "invalid",
@@ -64,12 +78,18 @@ describe("PubSub broker", () => {
           name: undefined,
           data: undefined,
         },
-      ];
-      const cb = getMockedPSBroker();
-      const validStates: IControllerState[] = [
         {
           name: cb.toString(),
           data: undefined,
+        },
+      ];
+
+      const validStates: IControllerState[] = [
+        {
+          name: cb.toString(),
+          data: {
+            recVoiceChannelId: "222222",
+          },
         },
       ];
       it.each(invalidStates)("Reject invalid state %s", async (state) => {
@@ -78,11 +98,6 @@ describe("PubSub broker", () => {
       it.each(validStates)("Accept valid state %s", async (state) => {
         await expect(broker.resumeFromState(state)).resolves.toEqual(true);
       });
-    });
-    it("Resume from state", async () => {
-      const state = await broker.getState();
-      expect(state.name).toEqual(broker.toString());
-      expect(state.data).toBeUndefined();
     });
   });
   describe("Send message", () => {
@@ -113,11 +128,37 @@ describe("PubSub broker", () => {
   });
 
   describe("Attempt a end event", () => {
-    it("Fire a end event if all the conditions are met", async () => {
+    it("Ok when there is no voice channel id is passed along", async () => {
       const endFired = waitEvent<IRecordAttemptInfo>(broker, "end");
       await expect(broker.attemptEndEvent(undefined)).resolves.not.toThrow();
       await expect(endFired).resolves.not.toThrow();
       expect(await endFired).toEqual(undefined);
+    });
+    it("Ok when a specific voice channel id is passed along", async () => {
+      const endFired = waitEvent<IRecordAttemptInfo>(broker, "end");
+      await expect(
+        broker.attemptStartEvent(goodStartPayloads[0])
+      ).resolves.not.toThrow();
+
+      await expect(
+        broker.attemptEndEvent(goodStartPayloads[0])
+      ).resolves.not.toThrow();
+      await expect(endFired).resolves.not.toThrow();
+      expect(await endFired).toEqual(undefined);
+    });
+
+    it("Ok when a specific voice channel id is passed along, but no the one currently recorded", async () => {
+      const debugFired = waitEvent<IRecordAttemptInfo>(broker, "debug");
+      await expect(
+        broker.attemptStartEvent(goodStartPayloads[0])
+      ).resolves.not.toThrow();
+
+      const modPayload = Object.assign(goodStartPayloads[0], {
+        voiceChannelId: "45566",
+      });
+      await expect(broker.attemptEndEvent(modPayload)).resolves.not.toThrow();
+      // A debug message should be fired here, to inform of the aborted end attempt
+      await expect(debugFired).resolves.not.toThrow();
     });
   });
 
@@ -145,7 +186,7 @@ function getMockedPSBroker() {
  */
 async function waitEvent<T>(
   cb: IController,
-  evt: "start" | "end" | "error",
+  evt: "start" | "end" | "error" | "debug",
   opt = { timeout: 3000 }
 ): Promise<T> {
   return new Promise<T>((res, rej) => {

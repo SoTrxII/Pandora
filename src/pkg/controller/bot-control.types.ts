@@ -84,8 +84,12 @@ export declare interface IController {
    * @param event
    */
   signalState(
-    event: RECORD_EVENT,
+    event: RECORD_EVENT.STARTED,
     payload?: Record<string, unknown>
+  ): Promise<void>;
+  signalState(
+    event: RECORD_EVENT.STOPPED,
+    payload?: { ids: string[] }
   ): Promise<void>;
 }
 

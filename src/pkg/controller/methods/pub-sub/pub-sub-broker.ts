@@ -13,6 +13,9 @@ import { IPubSubClientProxy, IPubSubServerProxy } from "./pub-sub-broker-api";
 export class PubSubBroker extends EventEmitter implements IController {
   /** Class identifier, used to prevent using reflection on the class name which can be flaky */
   private static readonly CLASS_ID = "PUBSUB";
+
+  /** Currently recorded voice channel */
+  private recVoiceChannelId: string = undefined;
   /** All the topics used by this broker
    * We're going to use the Reply/Response pattern
    * */
@@ -61,6 +64,7 @@ export class PubSubBroker extends EventEmitter implements IController {
       this.emit("start", {
         voiceChannelId: data.voiceChannelId,
       } as IRecordAttemptInfo);
+      this.recVoiceChannelId = data.voiceChannelId;
     } else {
       this.emit(
         "error",
@@ -77,8 +81,38 @@ export class PubSubBroker extends EventEmitter implements IController {
    * Fires an end event of all the conditions are met
    * @param data
    */
-  async attemptEndEvent(data: any): Promise<void> {
-    this.emit("end");
+  async attemptEndEvent(data: IRecordAttemptInfo): Promise<void> {
+    if (this.isEndPayloadValid(data)) this.emit("end");
+    else
+      this.emit(
+        "debug",
+        `Received end event, but conditions not met to end recording : recVoiceChannelID: ${
+          this.recVoiceChannelId
+        }, payload : ${JSON.stringify(data)}`
+      );
+  }
+
+  /**
+   * Checks if the end event attempt is valid
+   * @param data
+   */
+  isEndPayloadValid(data: IRecordAttemptInfo): boolean {
+    // Two situations here
+
+    // 1 -> The payload doesn't specify any voice channel
+    // This means stop all
+    if (data === undefined || data.voiceChannelId === undefined) return true;
+
+    // 2 -> The payload contains a specific voice channel
+    // If it's the one Pandora is recording, stop
+    // otherwise, ignore
+    if (
+      this.recVoiceChannelId !== undefined &&
+      data?.voiceChannelId === this.recVoiceChannelId
+    )
+      return true;
+
+    return false;
   }
 
   /**
@@ -95,13 +129,17 @@ export class PubSubBroker extends EventEmitter implements IController {
     const state: IControllerState = {
       name: PubSubBroker.CLASS_ID,
       /** We don't need any additional data */
-      data: undefined,
+      data: {
+        recVoiceChannelId: this.recVoiceChannelId,
+      },
     };
     return state;
   }
 
   async resumeFromState(state: IControllerState): Promise<boolean> {
     if (state.name !== PubSubBroker.CLASS_ID) return false;
+    if (state?.data?.recVoiceChannelId === undefined) return false;
+    this.recVoiceChannelId = state?.data?.recVoiceChannelId;
     return true;
   }
 
