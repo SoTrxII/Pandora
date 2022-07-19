@@ -64,21 +64,15 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
     super();
   }
 
-  stopRecording(): AccurateTime {
+  stopRecording(): void {
     if (!this.isRecording) throw new InvalidRecorderStateError("Not recording");
     clearInterval(this.pingProcess);
     this.voiceReceiver.off("data", this.adaptChunk);
     this.voiceChannel.leave();
     this.flushRemainingData();
     this.multiTracksEncoder.closeStreams();
-    const startTime = this.startTime;
     this.resetToBlankState();
     this.isRecording = false;
-    return startTime;
-  }
-
-  getStartTime(): AccurateTime {
-    return this.startTime;
   }
 
   async startRecording(voiceChannel: VoiceChannel): Promise<string> {

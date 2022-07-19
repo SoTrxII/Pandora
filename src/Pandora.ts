@@ -274,10 +274,9 @@ export class Pandora {
       return;
     }
 
-    let startTime: AccurateTime;
     // Everything is alright, ending the record session
     try {
-      startTime = this.audioRecorder.stopRecording();
+      this.audioRecorder.stopRecording();
       // Preventing multiple event handler to be registered across multiple sessions
       this.audioRecorder.removeAllListeners("error");
       this.audioRecorder.removeAllListeners("debug");
@@ -324,9 +323,7 @@ export class Pandora {
 
     this.logger.info(`Recording ended successfully!`);
     await c.signalState(RECORD_EVENT.STOPPED, {
-      recordsIds: currentState.recordsIds,
-      // TODO : Startime is the startime of the last record, not the first
-      startTime: startTime,
+      ids: currentState.recordsIds,
     });
   }
 

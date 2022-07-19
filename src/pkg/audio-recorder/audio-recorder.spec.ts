@@ -40,12 +40,6 @@ describe("Audio Recorder", () => {
   });
 
   describe("Trivia", () => {
-    it("Get start time", async () => {
-      await expect(
-        ar.startRecording(Substitute.for<VoiceChannel>())
-      ).resolves.not.toThrow();
-      expect(ar.getStartTime()).not.toBeUndefined();
-    });
     it("Heartbeat", () => {
       expect(() => ar.heartbeat()).not.toThrow();
     });

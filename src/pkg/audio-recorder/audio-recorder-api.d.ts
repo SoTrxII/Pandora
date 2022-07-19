@@ -5,9 +5,7 @@ type AccurateTime = [number, number];
 export interface IRecorderService {
   startRecording(voiceChannel: VoiceChannel): Promise<string>;
 
-  stopRecording(): AccurateTime;
-
-  getStartTime(): AccurateTime;
+  stopRecording(): void;
 
   /**
    * Set a handler for a error happening while recording
