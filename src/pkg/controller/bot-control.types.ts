@@ -85,7 +85,7 @@ export declare interface IController {
    */
   signalState(
     event: RECORD_EVENT.STARTED,
-    payload?: IRecordAttemptInfo
+    payload?: Record<string, any>
   ): Promise<void>;
   signalState(
     event: RECORD_EVENT.STOPPED,
