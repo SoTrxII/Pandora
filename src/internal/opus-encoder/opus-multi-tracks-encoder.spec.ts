@@ -115,6 +115,6 @@ describe("Multi track encoder", () => {
   });
 
   it("Get the recording basedir", () => {
-    expect(() => mte.getRecordingsDirectory()).not.toBeUndefined()
+    expect(() => mte.getRecordingsDirectory()).not.toBeUndefined();
   });
 });
