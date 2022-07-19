@@ -72,10 +72,7 @@ services:
 
   # Converts the raw files into audio files
   pandora-cooking-server:
-    # This one hasn't been uploaded on dockerhub yet
-    # Be aware that you must be connected to your github account to be
-    # able to pull from the Github Container Registry
-    image: ghcr.io/sotrxii/pandora-cooking-server/pandora-cooking-server:latest
+    image: sotrx/pandora-cooking-server:2.1.0
     container_name: pandora-cooking-server
     ports:
       - "3004:3004"
@@ -197,11 +194,10 @@ services:
 
   # Converts the raw files into audio files
   pandora-cooking-server:
-    # This one hasn't been uploaded on dockerhub yet
-    # Be aware that you must be connected to your github account to be
-    # able to pull from the Github Container Registry
-    image: ghcr.io/sotrxii/pandora-cooking-server/pandora-cooking-server:latest
+    image: sotrx/pandora-cooking-server:2.1.0
     container_name: pandora-cooking-server
+    environment:
+      - OBJECT_STORE_NAME=object-store
     ports:
       - "3004:3004"
     networks:
