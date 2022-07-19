@@ -228,7 +228,9 @@ export class Pandora {
         recordId
       );
       // and inform the controller that the recording started
-      await c.signalState(RECORD_EVENT.STARTED);
+      await c.signalState(RECORD_EVENT.STARTED, {
+        voiceChannelId: data.voiceChannelId,
+      });
     } catch (e) {
       switch (e.constructor.name) {
         case InvalidRecorderStateError.name:
