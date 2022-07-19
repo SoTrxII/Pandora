@@ -46,10 +46,15 @@ component to begin/end the recording. See [configuration section](#configuration
 ### Pub/Sub
 
 The pub/sub communication is using the [Request/Reply](https://www.enterpriseintegrationpatterns.com/RequestReply.html) pattern.
-In order to begin a recording session, you have to publish to the topic `startRecordingDiscord`. The [Redis Payload](#redis-message)
-must contain the voice channel id to record.
 The pub/sub component itself can be any valid [Dapr pub/sub component](https://docs.dapr.io/reference/components-reference/supported-pubsub). See [configuration section](#configuration).
-Example:
+
+Message topics and payloads are as follow :
+![Pub sub message exchange pattern](./resources/images/pubsub-messages-exchange.png)
+
+#### Details
+
+In order to begin a recording session, a message must be published to the topic `startRecordingDiscord`.
+This message must contain the ID of the voice channel to record.
 
 ```ts
 pubsub.publish("startRecordingDiscord", {
@@ -57,16 +62,16 @@ pubsub.publish("startRecordingDiscord", {
 });
 ```
 
-Once the recording started, an acknowledgment will be sent on the topic `recordingDiscordBegan`.
+Once the recording started, an acknowledgment will be sent on the topic `startedRecordingDiscord`, echoing the sent payload.
 
-Likewise, to stop recording, simply publish to the topic `stopRecordingDiscord`.
-Example:
+Likewise, to stop recording, a message must be published to the topic `stopRecordingDiscord`. This message can be handled in two ways :
 
-```ts
-pubsub.publish("stopRecordingDiscord");
-```
+- If the voice channel id is specified in the payload, **only the instance of Pandora currently recording this specific voice channel will stop.**
+- If the message has no payload, **all instances of pandora will stop recording**.
 
-The acknowledgment will be sent on the topic `recordingDiscordStopped`.
+This allows for multiple bot instances recording multiple voices channels at the same time to be controlled by the same backing process.
+
+The acknowledgment will be sent on the topic `stoppedRecordingDiscord`.
 
 ## Architecture
 
