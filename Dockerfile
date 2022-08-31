@@ -14,8 +14,9 @@ WORKDIR /app
 COPY --from=build /app/dist /app
 RUN apk add --no-cache --virtual=.build-deps alpine-sdk python3 yarn \
     && apk add ffmpeg \
+    && npm install -g pm2 \
     && yarn set version berry && grep -qF 'nodeLinker' .yarnrc.yml  || echo "nodeLinker: node-modules" >> .yarnrc.yml \
     && yarn plugin import workspace-tools  \
     && yarn workspaces focus --all --production \
     && apk del .build-deps
-CMD ["node", "/app/main.js"]
+CMD ["pm2-runtime", "/app/main.js"]
