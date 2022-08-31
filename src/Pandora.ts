@@ -221,12 +221,14 @@ export class Pandora {
       this.logger.debug(`[Main] :: Record started with id ${recordId}`);
       await c.sendMessage(`Recording started with id ${recordId}`);
       // commit this new record to the external state...
-      await this.persistNewRecord(
+      const newState = await this.computeNewState(
         currentState,
         c,
         data.voiceChannelId,
         recordId
       );
+      await this.stateStore.setState(newState);
+
       // and inform the controller that the recording started
       await c.signalState(RECORD_EVENT.STARTED, {
         voiceChannelId: data.voiceChannelId,
@@ -367,21 +369,21 @@ export class Pandora {
    * @param voiceChannelId
    * @param recordId
    */
-  async persistNewRecord(
+  async computeNewState(
     currentState: IRecordingState,
     c: IController,
     voiceChannelId: string,
     recordId: string
-  ): Promise<void> {
+  ): Promise<IRecordingState> {
     // store state
     // There can be multiple record IDs if we're resuming a previous record
     const recordingIds = currentState?.recordsIds ?? [];
     recordingIds.push(recordId);
-    await this.stateStore.setState({
+    return {
       recordsIds: recordingIds,
       controllerState: await c.getState(),
       voiceChannelId,
-    });
+    };
   }
 
   /**

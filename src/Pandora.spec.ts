@@ -168,6 +168,22 @@ describe("Pandora", () => {
       await rm(fakeRecordingDir, { recursive: true });
     });
   });
+  describe("Persist a new record", () => {
+    const pandora = getMockedPandora();
+    it("When there was another record", async () => {
+      const newState = await pandora.computeNewState(
+        {
+          recordsIds: ["1"],
+          voiceChannelId: "3444444",
+          controllerState: undefined,
+        },
+        Substitute.for<IController>(),
+        "3444444",
+        "2"
+      );
+      expect(newState.recordsIds).toEqual(["1", "2"]);
+    });
+  });
 });
 
 function getMockedPandora(
