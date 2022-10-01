@@ -51,13 +51,20 @@ container
   .bind<IMultiTracksEncoder>(TYPES.MultiTracksEncoder)
   .to(OpusMultiTracksEncoder);
 
+const DAPR_SERVER_PORT = process.env.DAPR_SERVER_PORT ?? "50053";
+const DAPR_HTTP_PORT = process.env.DAPR_HTTP_PORT ?? "3503";
+console.debug(
+  `Dapr params : http port -> "${DAPR_HTTP_PORT}", server port -> "${DAPR_SERVER_PORT}"`
+);
 container
   .bind<IRecorderService>(TYPES.AudioRecorder)
   .to(AudioRecorder)
   .inSingletonScope();
 
 /** State store */
-container.bind(TYPES.StoreProxy).toConstantValue(new DaprClient().state);
+container
+  .bind(TYPES.StoreProxy)
+  .toConstantValue(new DaprClient("localhost", DAPR_HTTP_PORT).state);
 container
   .bind(TYPES.StateStore)
   .toConstantValue(
@@ -75,7 +82,7 @@ if (objComponent) {
     .bind<IObjectStoreProxy>(TYPES.ObjectStoreProxy)
     .toConstantValue(
       new DaprObjectStorageAdapter(
-        new DaprClient().binding,
+        new DaprClient("localhost", DAPR_HTTP_PORT).binding,
         process.env.OBJECT_STORE_NAME
       )
     );
@@ -85,13 +92,14 @@ if (objComponent) {
 /** PubSub Interface */
 // Only register the Pub/Sub broker if the dapr component name was provided
 const PSComponent = process.env?.PUBSUB_NAME;
+
 if (PSComponent) {
   container
     .bind(TYPES.PubSubClientProxy)
-    .toConstantValue(new DaprClient().pubsub);
+    .toConstantValue(new DaprClient("localhost", DAPR_HTTP_PORT).pubsub);
   container
     .bind(TYPES.PubSubServerProxy)
-    .toConstantValue(new DaprServerAdapter());
+    .toConstantValue(new DaprServerAdapter(DAPR_SERVER_PORT, DAPR_HTTP_PORT));
   container
     .bind<IController>(TYPES.Controller)
     .toConstantValue(

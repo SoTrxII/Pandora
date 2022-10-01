@@ -1,6 +1,6 @@
-import { IPubSubServerProxy } from "./pub-sub-broker-api";
 import { DaprServer } from "@dapr/dapr";
 import { injectable } from "inversify";
+import { IPubSubServerProxy } from "./pub-sub-broker-api";
 
 /**
  * Adapt the interface of a classic Dapr server into the required
@@ -10,7 +10,11 @@ import { injectable } from "inversify";
  */
 @injectable()
 export class DaprServerAdapter implements IPubSubServerProxy {
-  constructor(private server = new DaprServer("127.0.0.1", "50051")) {}
+  private readonly server: DaprServer;
+
+  constructor(private port = "50051", daprPort = "3500") {
+    this.server = new DaprServer("127.0.0.1", port, "127.0.0.1", daprPort);
+  }
 
   async start(): Promise<void> {
     await this.server.start();
