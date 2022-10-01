@@ -5,7 +5,7 @@
 [![Docker Image Size](https://badgen.net/docker/size/sotrx/pandora/2.2.0?icon=docker&label=pandora)](https://hub.docker.com/r/sotrx/pandora/)
 
 Pandora is a multi-track Discord voice recorder written in Typescript. This project should actually be considered as a
-partial fork of [Yahweasel's Craig](https://github.com/Yahweasel/craig), as the recording process is pretty much the
+partial fork of [Yahweasel's Craig](https://github.com/CraigChat/craig), as the recording process is pretty much the
 same. Initially, I just needed to add some workflow changes to Craig, but plain Javascript wasn't that convenient to
 work with, and I ended up refactoring the whole thing, cherry-picking the functionalities I wanted.
 
