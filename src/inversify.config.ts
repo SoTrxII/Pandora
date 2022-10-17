@@ -146,24 +146,27 @@ if (commandPrefix) {
   });
 }
 
-/** Interaction Interface */
-container.bind<IController>(TYPES.Controller).toDynamicValue((context) => {
-  return new InteractionBroker(
-    context.container.get<() => Promise<Client>>(TYPES.ClientProvider),
-    [
-      {
-        name: "record",
-        description: "Record the voice channel the user is in",
-        type: Constants.ApplicationCommandTypes.CHAT_INPUT,
-      },
-      {
-        name: "end",
-        description: "End a previously started recording",
-        type: Constants.ApplicationCommandTypes.CHAT_INPUT,
-      },
-    ]
-  );
-});
+if (process.env?.DISABLE_INTERACTION !== undefined) {
+  console.log("Disabling interactions");
+  /** Interaction Interface */
+  container.bind<IController>(TYPES.Controller).toDynamicValue((context) => {
+    return new InteractionBroker(
+      context.container.get<() => Promise<Client>>(TYPES.ClientProvider),
+      [
+        {
+          name: "record",
+          description: "Record the voice channel the user is in",
+          type: Constants.ApplicationCommandTypes.CHAT_INPUT,
+        },
+        {
+          name: "end",
+          description: "End a previously started recording",
+          type: Constants.ApplicationCommandTypes.CHAT_INPUT,
+        },
+      ]
+    );
+  });
+}
 
 container
   .bind<IUnifiedBotController>(TYPES.UnifiedController)
