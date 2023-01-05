@@ -21,7 +21,10 @@ export class DaprObjectStorageAdapter implements IObjectStoreProxy {
   ): Promise<Record<string, unknown>> {
     const b64 = await readFile(filePath, { encoding: "base64" });
     return (await this.client.send(this.objStoreName, "create", b64, {
+      // S3 compat: https://docs.dapr.io/reference/components-reference/supported-bindings/s3/#save-a-file-to-a-object
       key: key,
+      // Local storage compat : https://docs.dapr.io/reference/components-reference/supported-bindings/localstorage/#save-text-to-a-specific-file
+      fileName: key,
     })) as Record<string, unknown>;
   }
 
@@ -33,7 +36,10 @@ export class DaprObjectStorageAdapter implements IObjectStoreProxy {
    */
   async retrieve(key: string): Promise<Buffer> {
     const file = (await this.client.send(this.objStoreName, "get", undefined, {
+      // S3 compat: https://docs.dapr.io/reference/components-reference/supported-bindings/s3/#save-a-file-to-a-object
       key: key,
+      // Local storage compat : https://docs.dapr.io/reference/components-reference/supported-bindings/localstorage/#save-text-to-a-specific-file
+      fileName: key,
     })) as unknown as string;
     return Buffer.from(file, "base64");
   }
@@ -45,7 +51,10 @@ export class DaprObjectStorageAdapter implements IObjectStoreProxy {
    */
   async delete(key: string): Promise<void> {
     await this.client.send(this.objStoreName, "delete", undefined, {
+      // S3 compat: https://docs.dapr.io/reference/components-reference/supported-bindings/s3/#save-a-file-to-a-object
       key: key,
+      // Local storage compat : https://docs.dapr.io/reference/components-reference/supported-bindings/localstorage/#save-text-to-a-specific-file
+      fileName: key,
     });
   }
 
