@@ -1,6 +1,6 @@
 # Expected size : 214Mb
 # We're using yarn berry in legacy node_modules mode. PnP isn't that reliable for the moment
-FROM node:current-alpine as build
+FROM node:16-alpine as build
 WORKDIR /app
 RUN apk add python3 make alpine-sdk yarn
 COPY . /app/
@@ -9,7 +9,7 @@ RUN yarn set version berry && grep -qF 'nodeLinker' .yarnrc.yml  || echo "nodeLi
 RUN yarn install
 RUN yarn run build
 
-FROM node:current-alpine as prod
+FROM node:16-alpine as prod
 WORKDIR /app
 COPY --from=build /app/dist /app
 RUN apk add --no-cache --virtual=.build-deps alpine-sdk python3 yarn \
