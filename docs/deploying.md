@@ -32,7 +32,7 @@ version: "3.7"
 services:
   # The bot itself, record into raw, unusable files
   pandora:
-    image: sotrx/pandora:2.2.0
+    image: sotrx/pandora:2.4.0
     container_name: pandora
     restart: always
     environment:
@@ -72,7 +72,7 @@ services:
 
   # Converts the raw files into audio files
   pandora-cooking-server:
-    image: sotrx/pandora-cooking-server:2.1.0
+    image: sotrx/pandora-cooking-server:2.4.4
     container_name: pandora-cooking-server
     ports:
       - "3004:3004"
@@ -155,7 +155,7 @@ version: "3.7"
 services:
   # The bot itself, record into raw, unusable files
   pandora:
-    image: sotrx/pandora:2.2.0
+    image: sotrx/pandora:2.4.0
     container_name: pandora
     restart: always
     environment:
@@ -194,7 +194,7 @@ services:
 
   # Converts the raw files into audio files
   pandora-cooking-server:
-    image: sotrx/pandora-cooking-server:2.1.0
+    image: sotrx/pandora-cooking-server:2.4.4
     container_name: pandora-cooking-server
     environment:
       - OBJECT_STORE_NAME=object-store
