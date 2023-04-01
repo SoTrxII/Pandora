@@ -31,7 +31,7 @@
     "bufferutil": "^4.0.6",
     "cyclic-32": "^1.2.0",
     "discord-api-types": "^0.33.3",
-    "eris": "^0.17.0",
+    "eris": "^0.17.2",
     "inversify": "^6.0.1",
     "reflect-metadata": "^0.1.13",
     "ts-node": "^10.8.1",

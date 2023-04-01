@@ -1472,7 +1472,7 @@ __metadata:
     cyclic-32: ^1.2.0
     discord-api-types: ^0.33.3
     dotenv-safe: ^8.2.0
-    eris: ^0.17.0
+    eris: ^0.17.2
     eslint: ^8.17.0
     eslint-config-prettier: ^8.5.0
     eslint-plugin-prettier: ^4.0.0
@@ -2430,9 +2430,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eris@npm:^0.17.0":
-  version: 0.17.0
-  resolution: "eris@npm:0.17.0"
+"eris@npm:^0.17.2":
+  version: 0.17.2
+  resolution: "eris@npm:0.17.2"
   dependencies:
     opusscript: ^0.0.8
     tweetnacl: ^1.0.3
@@ -2442,7 +2442,7 @@ __metadata:
       optional: true
     tweetnacl:
       optional: true
-  checksum: c8803449ee90d54b93f307c1cb5ccf734cdd098eeff611d11be83e2f844afe1891dee684d3eebe259031c6a558665d1499b0ae548b9f536facaf592acada1ed4
+  checksum: 0af9ea9284fb3f63a34aeafb13d3de5402752c115fe8dcaa56d512e25aa959b90bd4dcedeedabaa87b13eef5535ef9097b4d278cfad05d698943371ac15438e3
   languageName: node
   linkType: hard
 
@@ -5703,7 +5703,7 @@ __metadata:
 
 "typescript@patch:typescript@4.7.3#~builtin<compat/typescript>":
   version: 4.7.3
-  resolution: "typescript@patch:typescript@npm%3A4.7.3#~builtin<compat/typescript>::version=4.7.3&hash=701156"
+  resolution: "typescript@patch:typescript@npm%3A4.7.3#~builtin<compat/typescript>::version=4.7.3&hash=7ad353"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
