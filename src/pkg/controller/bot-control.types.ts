@@ -104,7 +104,10 @@ export declare interface IUnifiedBotController {
    */
   on(
     event: "start",
-    listener: ({ data: IRecordAttemptInfo, controller: IController }) => void
+    listener: (arg: {
+      data: IRecordAttemptInfo;
+      controller: IController;
+    }) => void
   ): this;
 
   /**
@@ -114,7 +117,7 @@ export declare interface IUnifiedBotController {
    */
   on(
     event: "end",
-    listener: ({ data: any, controller: IController }) => void
+    listener: (arg: { data: any; controller: IController }) => void
   ): this;
 
   /**
@@ -124,7 +127,7 @@ export declare interface IUnifiedBotController {
    */
   on(
     event: "error",
-    listener: ({ error: Error, controller: IController }) => void
+    listener: (arg: { error: Error; controller: IController }) => void
   ): this;
 
   /**
@@ -134,7 +137,7 @@ export declare interface IUnifiedBotController {
    */
   on(
     event: "debug",
-    listener: ({ message: string, controller: IController }) => void
+    listener: (arg: { message: string; controller: IController }) => void
   ): this;
 
   /**
