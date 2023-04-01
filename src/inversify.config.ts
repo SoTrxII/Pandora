@@ -146,8 +146,8 @@ if (commandPrefix) {
   });
 }
 
-if (process.env?.DISABLE_INTERACTION !== undefined) {
-  console.log("Disabling interactions");
+if (process.env?.DISABLE_INTERACTION === undefined) {
+  console.log("Enabling interactions");
   /** Interaction Interface */
   container.bind<IController>(TYPES.Controller).toDynamicValue((context) => {
     return new InteractionBroker(
