@@ -7,7 +7,7 @@ Here are some others ways to deploy Pandora with more robust configurations
 You may want to control the bit behaviour using another program instead of commands.
 
 To way to achieve this is to simply add another Dapr component. In this sample, the same redis instance is used for both
-state storage and pub/sub, you may want to use [another pubsub component](https://docs.dapr.io/reference/components-reference/supported-pubsub.
+state storage and pub/sub, you may want to use [another pubsub component](https://docs.dapr.io/reference/components-reference/supported-pubsub).
 
 ```yaml
 #./components/pubsub.yaml
