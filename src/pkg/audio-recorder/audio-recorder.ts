@@ -89,11 +89,6 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
     });
     this.voiceConnection = await this.setupVoiceConnection();
     this.voiceReceiver = this.voiceConnection.receive("opus");
-    // Keep the voice connection alive
-    this.pingProcess = setInterval(
-      () => this.heartbeat(),
-      AudioRecorder.PING_INTERVAL
-    );
     this.voiceReceiver.on("data", (c, u, t) => this.adaptChunk(c, u, t));
     this.voiceConnection.on("error", (err) => this.emit("error", err));
     return recordId;
@@ -107,7 +102,7 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
     const voiceConnection = await this.voiceChannel.join({ opusOnly: true });
     try {
       await access(AudioRecorder.SAMPLE_SOUND_PATH, constants.F_OK);
-      voiceConnection.play(AudioRecorder.SAMPLE_SOUND_PATH);
+      voiceConnection.play(AudioRecorder.SAMPLE_SOUND_PATH, { format: "ogg" });
       voiceConnection.stopPlaying();
       return voiceConnection;
     } catch (e) {
@@ -146,21 +141,6 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
         packetNo
       );
       this.userPacketNos.set(user.id, newPacketNo);
-    }
-  }
-
-  /**
-   * Periodically pings the voice connection to make sure it's alive
-   */
-  heartbeat() {
-    try {
-      const oggStream = new Readable();
-      this.voiceConnection.play(oggStream, { format: "ogg" });
-      oggStream.push(AudioRecorder.SILENT_OGG_OPUS);
-      oggStream.push(null);
-    } catch (e) {
-      // This isn't an error, just a weird situation
-      this.emit("debug", "An heartbeat failed");
     }
   }
 
