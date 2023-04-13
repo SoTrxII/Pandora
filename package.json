@@ -1,6 +1,6 @@
 {
   "name": "Pandora",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "main": "index.js",
   "license": "ISC",
   "keywords": [
@@ -22,7 +22,7 @@
     "postbuild": "npx shx cp -r src/assets dist/",
     "gen:doc": "typedoc --entryPointStrategy expand ./src",
     "start:dapr": "dapr run --log-level debug --app-id pandora --dapr-http-max-request-size 300 --app-port 50053 --dapr-http-port 3503 --components-path ./dapr/components",
-    "start:dev": "npm run build && node -r dotenv-safe/config dist/main.js "
+    "start:dev": "npm run build && node -r dotenv-safe/config dist/main.js"
   },
   "dependencies": {
     "@dapr/dapr": "^2.5.0",
