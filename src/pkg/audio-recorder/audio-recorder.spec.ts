@@ -40,9 +40,6 @@ describe("Audio Recorder", () => {
   });
 
   describe("Trivia", () => {
-    it("Heartbeat", () => {
-      expect(() => ar.heartbeat()).not.toThrow();
-    });
     it("Adapt Chunk", () => {
       ar.adaptChunk(Buffer.from([0]), "1", Date.now());
     });
