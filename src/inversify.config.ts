@@ -122,6 +122,13 @@ container.bind(TYPES.ClientProvider).toProvider((context) => {
         console.log("Up and running");
         res(client);
       });
+      client.on("error", (err) => {
+        console.log(
+          `Catching connexion reset by peers. Eris should reconnect. Details : ${JSON.stringify(
+            err
+          )}`
+        );
+      });
       setTimeout(() => {
         if (client.ready) res(client);
         else rej();
