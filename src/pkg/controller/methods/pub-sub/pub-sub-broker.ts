@@ -140,6 +140,12 @@ export class PubSubBroker extends EventEmitter implements IController {
     if (state.name !== PubSubBroker.CLASS_ID) return false;
     if (state?.data?.recVoiceChannelId === undefined) return false;
     this.recVoiceChannelId = state?.data?.recVoiceChannelId;
+    try {
+      await this.attemptStartEvent({ voiceChannelId: this.recVoiceChannelId });
+    } catch (e) {
+      this.emit("error", e);
+      return false;
+    }
     return true;
   }
 
