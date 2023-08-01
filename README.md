@@ -89,19 +89,29 @@ Pandora uses 5 modules:
 
 ## Configuration
 
-Pandora uses 5 environment variables to control its runtime behaviour.
-
 ```dotenv
+# Mandatory variables
 # Discord bot token
-PANDORA_TOKEN=<DISCORD_TOKEN>
+PANDORA_TOKEN=
 # Prefix for text-based command
-COMMAND_PREFIX=<COMMAND_PREFIX>
-# Dapr components names
-PUBSUB_NAME=<DAPR_COMPONENT_PUBSUB>
-STORE_NAME=<DAPR_COMPONENT_STORE>
-OBJECT_STORE_NAME=<DAPR_COMPONENT_OBJECT_STORE>
-# If defined, do not use interactions as a mean to communicate
-DISABLE_INTERACTIONS=<ANY_VALUE>
+COMMAND_PREFIX=
+# Dapr component name for state storage
+STORE_NAME=
+
+# Optional variables
+If defined: Slash commands aren't published
+DISABLE_INTERACTIONS=
+# Dapr callback port
+DAPR_SERVER_PORT=
+# Dapr Http port. 
+DAPR_HTTP_PORT=
+
+# Variables for "complete" deployment
+# Dapr component name for object storage
+OBJECT_STORE_NAME=
+# Dapr component name for pub/sub support
+PUBSUB_NAME=
+
 ```
 
 #### Dapr
@@ -114,147 +124,45 @@ using these components in the [sample implementation](#minimal-deployment) secti
 
 ## Minimal deployment
 
-There are multiple ways to deploy Pandora. This section will focus on the simplest way and will have the following features :
+This project is meant to be modular.
+The most basic setup offers the following features :
+- Record a Discord channel, with a start command and an end command
+- Retrieve the processed recording using the cooking server
 
-- Starting / Ending a recording with text commands/interaction
-- Retrieve a record with the [cooking server](https://github.com/SoTrxII/Pandora-cooking-server)
-- Using the state store, it should be able to reboot and retry if Discord voice connection crashes
+To achieve this, we need three components :
+- Pandora, the bot itself
+- The "cooking server", which processes the audio files
+- A state store (Redis in the example). This is for resiliency.
 
-I'll explain why you might want to add some components later
-
-This example deployment will use docker-compose, but any orchestrator will do.
-
-First, create in any directory the following hierarchy:
-
-```tree
-.
-├── components
-│   └── state-store.yml
-└── docker-compose.yml
+To deploy this setup, you can use the following commands :
+```shell
+# Copy the sample dotenv file, don't forget to replace all mandatory variables
+cp .env.example samples/minimal/.env
+cd samples/minimal 
+docker compose up
 ```
 
-Then:
-
-- paste this in **./components/statestore**
-
-```yaml
-#./components/state-store.yaml
-# A sample statestore component using Redis
-# as a backend
-apiVersion: dapr.io/v1alpha1
-kind: Component
-metadata:
-  name: statestore
-spec:
-  type: state.redis
-  version: v1
-  metadata:
-    - name: redisHost
-      value: redis:6379
-    - name: redisPassword
-      value: ""
-```
-
-- paste this in **docker-compose.yml**, and **fill the <...> variables**
-
-```yaml
-version: "3.7"
-services:
-  # The bot itself, record into raw, unusable files
-  pandora:
-    image: sotrx/pandora:2.4.0
-    container_name: pandora
-    restart: always
-    environment:
-      # Discord bot token
-      - PANDORA_TOKEN=<DISCORD_TOKEN>
-      # Prefix for text-based command
-      - COMMAND_PREFIX=<COMMAND_PREFIX>
-      # Dapr component for state storage
-      - STORE_NAME=statestore
-    volumes:
-      - pandora_recordings:/rec
-    networks:
-      - discord_recordings
-  # Dapr sidecar, defining runtime implementations
-  pandora-dapr:
-    image: "daprio/daprd:edge"
-    command:
-      [
-        "./daprd",
-        "-app-id",
-        "pandora",
-        "-app-port",
-        "50051",
-        "-dapr-grpc-port",
-        "50002",
-        "-components-path",
-        "/components",
-      ]
-    # In docker-compose, you have to provide components by sharing a volume
-    # this is the dapr/components directory
-    volumes:
-      - "./components/:/components"
-    depends_on:
-      - pandora
-    network_mode: "service:pandora"
-
-  # Converts the raw files into audio files
-  pandora-cooking-server:
-    image: sotrx/pandora-cooking-server:2.4.4
-    container_name: pandora-cooking-server
-    ports:
-      - "3004:3004"
-    restart: always
-    volumes:
-      - pandora_recordings:/app/rec
-    networks:
-      - discord_recordings
-
-  # State store
-  redis:
-    image: "redis:alpine"
-    networks:
-      - discord_recordings
-
-# Storing the recordings
-volumes:
-  pandora_recordings:
-
-# Default docker network doesn't always provide name resolution
-# so we create a new one
-networks:
-  discord_recordings:
-```
-
-You can then start the bot with
-
-```
-docker-compose up -d
-```
-
-Upon starting a recording with either a slash command or a text command,
-pandora will emit a message with this format :
+If you start a recording with either a slash command or a text command, you'll get the recording ID.
 
 ```shell
 Recording started with id <ID>
 ```
 
-Once you ended the recording session, you can get the audio files using the exposed port of the cooking server.
+Once you've finished recording, you can retrieve the audio files using the open port on the cooking server.
 
-Open a browser and type
-
+Open a browser and type :
 ```
 localhost:3004/<ID>
 ```
 
-to retrieve the recording in the default format (OGG, mixed as a single track)
+to retrieve the recording in the default format (OGG, all users mixed as a single track)
 
-#### Limitations
+#### Going further 
 
-This deployment is simple but lack two features :
+This deployment is simple, but lacks two features:
+- Starting and stopping a recording with Pub/Sub
+- Use an external object storage solution to store the recordings. Using a volume is not ideal for scaling.
 
-- Starting / Ending a recording with Pub/Sub
-- Using an external object storage solution (such as Amazon S3) to store the recordings. Using a volume prevent the bot/cooking server to be able to scale properly
+Although not mandatory, these two features are somewhat the reason Pandora exists, as I use the bot as part of a larger system.
 
-These more robust deployments are explained in the [deploying](docs/deploying.md) doc.
+This deployment can be found in the samples/complete directory.

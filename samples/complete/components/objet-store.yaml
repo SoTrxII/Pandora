@@ -1,0 +1,38 @@
+# Object storage using Minio
+# see https://docs.dapr.io/reference/components-reference/supported-bindings/s3/
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: object-store
+spec:
+  type: bindings.aws.s3
+  version: v1
+  metadata:
+    # Bucket name, should be created BEFOREHAND using the Minio UI
+    - name: bucket
+      value: recordings-test
+    # Anything is fine, its not used in Minio
+    - name: region
+      value: us-east-1
+    # Minio API endpoint
+    - name: endpoint
+      value: http://minio:9000
+    # Mandatory for Minio
+    - name: forcePathStyle
+      value: true
+    # We're using the docker-network without certificates
+    - name: disableSSL
+      value: true
+    # Dapr is encoding all files in B64 before uploading it
+    # The following two attributes tells Dapr decode b64 before uploading
+    # it on the stoarge backend, and to encode it back when data are retrieved
+    - name: encodeBase64
+      value: true
+    - name: decodeBase64
+      value: true
+    # An user must be created on Minio using the Minio console to get
+    # These attributes
+    - name: accessKey
+      value: "XnZwvzujlWEzBG5T"
+    - name: secretKey
+      value: "9p2dKraexj5RzN7kHV9S9H2EAj7RSI9o"

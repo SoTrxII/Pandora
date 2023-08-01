@@ -1,0 +1,66 @@
+services:
+  # The bot itself, record into raw, unusable files
+  pandora:
+    build:
+      context: ../..
+    container_name: pandora
+    restart: always
+    environment:
+      # Discord bot token
+      - PANDORA_TOKEN=${PANDORA_TOKEN}
+      # Prefix for text-based command
+      - COMMAND_PREFIX=${COMMAND_PREFIX}
+      # Dapr component for state storage
+      - STORE_NAME=${STORE_NAME}
+      # Dapr callback port
+      - DAPR_SERVER_PORT=${DAPR_SERVER_PORT}
+      # Sidecar port
+      - DAPR_HTTP_PORT=${DAPR_HTTP_PORT}
+      - NODE_ENV=production
+    volumes:
+      - pandora_recordings:/app/rec
+    networks:
+      - discord_recordings
+  # Dapr sidecar, defining runtime implementations
+  pandora-dapr:
+    image: "daprio/daprd:edge"
+    command: [
+      "./daprd",
+      "-app-id", "pandora",
+      "-app-port", "${DAPR_SERVER_PORT}",
+      "-dapr-http-port", "${DAPR_HTTP_PORT}",
+      "-dapr-http-max-request-size", "1200",
+      "-resources-path" ,"/components"
+    ]
+    # In docker-compose, you have to provide components by sharing a volume
+    # this is the dapr/components directory
+    volumes:
+      - "./components/:/components"
+    network_mode: "service:pandora"
+
+  # Converts the raw files into audio files
+  pandora-cooking-server:
+    image: sotrx/pandora-cooking-server:2.4.4
+    container_name: pandora-cooking-server
+    ports:
+      - "3004:3004"
+    restart: always
+    volumes:
+      - pandora_recordings:/app/rec
+    networks:
+      - discord_recordings
+
+  # State store
+  redis:
+    image: "redis:alpine"
+    networks:
+      - discord_recordings
+
+# Storing the recordings
+volumes:
+  pandora_recordings:
+
+# Default docker network doesn't always provide name resolution
+# so we create a new one
+networks:
+  discord_recordings:
