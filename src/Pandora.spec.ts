@@ -214,8 +214,8 @@ function getMockedPandora(
     opt.unifiedController,
     opt.audioRecorder,
     opt.stateStore,
-    opt.objStore,
-    opt.logger
+    opt.logger,
+    opt.objStore
   );
 }
 

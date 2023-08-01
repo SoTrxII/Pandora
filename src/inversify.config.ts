@@ -179,6 +179,12 @@ container
   .bind<IUnifiedBotController>(TYPES.UnifiedController)
   .to(BotController);
 
+// The get operation on the container will throw if the object store is not bound
+// Even if marked as an optional dependency
+const objStore = container.isBound(TYPES.ObjectStore)
+  ? container.get<IObjectStore>(TYPES.ObjectStore)
+  : undefined;
+
 container
   .bind(TYPES.Pandora)
   .toConstantValue(
@@ -187,7 +193,7 @@ container
       container.get<IUnifiedBotController>(TYPES.UnifiedController),
       container.get<IRecorderService>(TYPES.AudioRecorder),
       container.get<IRecordingStore>(TYPES.StateStore),
-      container.get<IObjectStore>(TYPES.ObjectStore),
-      container.get<ILogger>(TYPES.Logger)
+      container.get<ILogger>(TYPES.Logger),
+      objStore
     )
   );

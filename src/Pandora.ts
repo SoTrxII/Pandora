@@ -1,4 +1,4 @@
-import { inject, injectable } from "inversify";
+import { inject, injectable, optional } from "inversify";
 import { ChannelType } from "discord-api-types/v10";
 import { Client, VoiceChannel } from "eris";
 import { TYPES } from "./types";
@@ -39,10 +39,11 @@ export class Pandora {
     @inject(TYPES.AudioRecorder) private audioRecorder: IRecorderService,
     /** State storage to handle disaster recovery */
     @inject(TYPES.StateStore) private stateStore: IRecordingStore,
-    /** Object storage to store recording files */
-    @inject(TYPES.ObjectStore) private objectStore: IObjectStore,
     /** Logging interface */
-    @inject(TYPES.Logger) private logger: ILogger
+    @inject(TYPES.Logger) private logger: ILogger,
+    /** Optional deps *
+    /** Object storage to store recording files */
+    @inject(TYPES.ObjectStore) @optional() private objectStore: IObjectStore
   ) {
     if (this.objectStore === undefined)
       this.logger.info(
