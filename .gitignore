@@ -33,3 +33,7 @@ coverage
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+
+# Data directory for dapr
+.dapr/*
+!.dapr/resources

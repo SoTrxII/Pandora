@@ -7,7 +7,7 @@ spec:
   version: v1
   metadata:
     - name: bucket
-      value: recordings-test
+      value: recordings
     - name: region
       value: us-east-1
     - name: endpoint
@@ -21,6 +21,6 @@ spec:
     - name: decodeBase64
       value: true
     - name: accessKey
-      value: "XnZwvzujlWEzBG5T"
+      value: "minioadmin"
     - name: secretKey
-      value: "9p2dKraexj5RzN7kHV9S9H2EAj7RSI9o"
+      value: "minioadmin"
