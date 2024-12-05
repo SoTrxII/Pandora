@@ -1,0 +1,36 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/javascript-node
+{
+  "name": "Node.js",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-18-bookworm",
+  "features": {
+    "ghcr.io/devcontainers-extra/features/pnpm:2": {},
+    "ghcr.io/devcontainers-extra/features/ffmpeg-apt-get:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "packages": [
+        "python3-distutils"
+      ]
+    }
+    // python3-distutils
+    //"ghcr.io/dapr/cli/dapr-cli:0": {}
+  },
+  // Can fail, doesn't matter
+  //"postStartCommand": "dapr init ; pnpm install --force",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.vscode-github-actions",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": true
+        }
+      }
+    }
+  }
+}
