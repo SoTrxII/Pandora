@@ -28,10 +28,10 @@ jobs:
           sudo apt-get install -y python3-distutils
 
       - name: Install deps
-        run: npm install
+        run: yarn install
 
       - name: Transpile typescript
-        run: npm run build
+        run: yarn run build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
