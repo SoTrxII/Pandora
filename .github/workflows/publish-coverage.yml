@@ -23,7 +23,7 @@ jobs:
       - run: yarn run build
 
       - name: Execute tests
-        run: yarn run test -- --coverage --forceExit --watchAll=false
+        run: npm run test -- --coverage --forceExit --watchAll=false
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v2
