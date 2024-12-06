@@ -149,7 +149,7 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
    * to Discord.js format
    */
   adaptChunk(chunk: Buffer, userId: string, timestamp: number) {
-    const newChunk: Chunk = Buffer.from(chunk) as Chunk;
+    const newChunk: Chunk = Buffer.from(chunk) as unknown as Chunk;
     newChunk.timestamp = timestamp;
     // If the userId is the bot itself or if it's somehow not defined,
     // abort recording this chunk

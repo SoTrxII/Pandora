@@ -42,7 +42,7 @@
   "devDependencies": {
     "@fluffy-spoon/substitute": "^1.208.0",
     "@types/jest": "^29.5.14",
-    "@types/node": "^18.17.1",
+    "@types/node": "^22.10.1",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
     "dotenv-safe": "^8.2.0",
