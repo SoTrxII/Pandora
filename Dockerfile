@@ -1,6 +1,6 @@
 # Expected size : 440Mb
 # We're using yarn berry in legacy node_modules mode. PnP isn't that reliable for the moment
-FROM node:18-alpine as build
+FROM node:22-alpine3.20 AS build
 WORKDIR /app
 RUN apk add python3 make alpine-sdk yarn py3-setuptools
 COPY . /app/
@@ -11,7 +11,7 @@ RUN corepack enable \
 RUN yarn install
 RUN yarn run build
 
-FROM node:18-alpine as prod
+FROM node:22-alpine3.20 AS prod
 WORKDIR /app
 COPY --from=build /app/dist /app
 RUN apk add --no-cache --virtual=.build-deps alpine-sdk python3 py3-setuptools yarn \
