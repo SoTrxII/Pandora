@@ -36,6 +36,7 @@
     "inversify": "^6.1.6",
     "patch-package": "^8.0.1",
     "reflect-metadata": "^0.2.2",
+    "sodium-native": "^5.0.10",
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
     "winston": "^3.17.0",

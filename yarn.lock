@@ -2013,6 +2013,7 @@ __metadata:
     patch-package: ^8.0.1
     prettier: ^3.4.2
     reflect-metadata: ^0.2.2
+    sodium-native: ^5.0.10
     ts-jest: ^29.2.5
     ts-node: ^10.9.2
     tslib: ^2.8.1
@@ -2335,6 +2336,42 @@ __metadata:
   version: 1.0.0
   resolution: "balanced-match@npm:1.0.0"
   checksum: 9b67bfe558772f40cf743a3469b48b286aecec2ea9fe80c48d74845e53aab1cef524fafedf123a63019b49ac397760573ef5f173f539423061f7217cbb5fbd40
+  languageName: node
+  linkType: hard
+
+"bare-addon-resolve@npm:^1.3.0":
+  version: 1.9.6
+  resolution: "bare-addon-resolve@npm:1.9.6"
+  dependencies:
+    bare-module-resolve: ^1.10.0
+    bare-semver: ^1.0.0
+  peerDependencies:
+    bare-url: "*"
+  peerDependenciesMeta:
+    bare-url:
+      optional: true
+  checksum: 29c936fb5dfc71f1b9fa9ee7d08a4da76bc5bb17630a039c8a5c8019b440353166f3830b89715a877513750848304210666dc332814022416bf5a600352e2e37
+  languageName: node
+  linkType: hard
+
+"bare-module-resolve@npm:^1.10.0":
+  version: 1.12.0
+  resolution: "bare-module-resolve@npm:1.12.0"
+  dependencies:
+    bare-semver: ^1.0.0
+  peerDependencies:
+    bare-url: "*"
+  peerDependenciesMeta:
+    bare-url:
+      optional: true
+  checksum: f7a0eb1422396473c070feb4587bb4189930d5b049484b74c1822153a93e739839b44f7d2601222fc229ebf2b02239f42f12132c8008be9a04093bcf1a38f51d
+  languageName: node
+  linkType: hard
+
+"bare-semver@npm:^1.0.0":
+  version: 1.0.2
+  resolution: "bare-semver@npm:1.0.2"
+  checksum: ac494035d8b151a6203aa388200f170490faac76a6f77bde871a792b99724b5751b4c84d838ee4258c20fe6abb7232963fc86c11ad1f2903b3f3d9ff3154a8c5
   languageName: node
   linkType: hard
 
@@ -6079,6 +6116,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"require-addon@npm:^1.1.0":
+  version: 1.2.0
+  resolution: "require-addon@npm:1.2.0"
+  dependencies:
+    bare-addon-resolve: ^1.3.0
+  checksum: ae03f37303df83fa8bbe829bb409b5ff1fb574ed97049ac12bceaf8ffa33a0d4c352962cb281781b80e77fe30898b86a4935545ff69fd0039911c3c24ace2b20
+  languageName: node
+  linkType: hard
+
 "require-directory@npm:^2.1.1":
   version: 2.1.1
   resolution: "require-directory@npm:2.1.1"
@@ -6419,6 +6465,16 @@ __metadata:
     ip: ^1.1.5
     smart-buffer: ^4.2.0
   checksum: dd9194293059d737759d5c69273850ad4149f448426249325c4bea0e340d1cf3d266c3b022694b0dcf5d31f759de23657244c481fc1e8322add80b7985c36b5e
+  languageName: node
+  linkType: hard
+
+"sodium-native@npm:^5.0.10":
+  version: 5.0.10
+  resolution: "sodium-native@npm:5.0.10"
+  dependencies:
+    require-addon: ^1.1.0
+    which-runtime: ^1.2.1
+  checksum: d39cfdb42c986a957bfe35e4cc61b5d367988c4dc683dd51b8b0f72881dc94359d44101a921ed990a9a3dd39e2768c5d4873f2a21852c22e12aba4dd7e62af50
   languageName: node
   linkType: hard
 
@@ -7016,6 +7072,13 @@ __metadata:
     tr46: ~0.0.3
     webidl-conversions: ^3.0.0
   checksum: b8daed4ad3356cc4899048a15b2c143a9aed0dfae1f611ebd55073310c7b910f522ad75d727346ad64203d7e6c79ef25eafd465f4d12775ca44b90fa82ed9e2c
+  languageName: node
+  linkType: hard
+
+"which-runtime@npm:^1.2.1":
+  version: 1.3.2
+  resolution: "which-runtime@npm:1.3.2"
+  checksum: 2b4bab263063613dd0f974bf0aea6e4c63ec16d352fed6d5fc5692c07651678af8f7e8f942578593522e5ca4ad7239544f90e4ca2f4e01189ec27852a308598d
   languageName: node
   linkType: hard
 
