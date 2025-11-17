@@ -9,7 +9,7 @@ import * as EventEmitter from "events";
 import { injectable } from "inversify";
 import {
   ApplicationCommand,
-  ApplicationCommandStructure,
+  ApplicationCommandCreateOptions,
   Client,
   CommandInteraction,
   Constants,
@@ -37,25 +37,26 @@ export class InteractionBroker extends EventEmitter implements IController {
   private interactionBuffer: CommandInteraction;
 
   /** Commands to register against discord's api gateway */
-  private readonly commands: ApplicationCommandStructure[];
+  private readonly commands: ApplicationCommandCreateOptions<boolean>[];
 
   /** Default commands to register */
-  private static readonly DEFAULT_COMMANDS: ApplicationCommandStructure[] = [
-    {
-      name: "record",
-      description: "Record the voice channel the user is in",
-      type: Constants.ApplicationCommandTypes.CHAT_INPUT,
-    },
-    {
-      name: "end",
-      description: "End a previously started recording",
-      type: Constants.ApplicationCommandTypes.CHAT_INPUT,
-    },
-  ];
+  private static readonly DEFAULT_COMMANDS: ApplicationCommandCreateOptions<boolean>[] =
+    [
+      {
+        name: "record",
+        description: "Record the voice channel the user is in",
+        type: Constants.ApplicationCommandTypes.CHAT_INPUT,
+      },
+      {
+        name: "end",
+        description: "End a previously started recording",
+        type: Constants.ApplicationCommandTypes.CHAT_INPUT,
+      },
+    ];
 
   constructor(
     private readonly clientProvider: () => Promise<Client>,
-    commands: ApplicationCommandStructure[] = []
+    commands: ApplicationCommandCreateOptions<boolean>[] = []
   ) {
     super();
     this.commands = commands ?? InteractionBroker.DEFAULT_COMMANDS;
@@ -66,7 +67,7 @@ export class InteractionBroker extends EventEmitter implements IController {
    * @param commands
    */
   async registerCommands(
-    commands: ApplicationCommandStructure[]
+    commands: ApplicationCommandCreateOptions<boolean>[]
   ): Promise<void> {
     try {
       await Promise.all(

@@ -20,24 +20,26 @@
     "prebuild": "npx shx rm -rf build/*",
     "build": "tsc && npx shx cp package.json dist/package.json && npx shx cp -r src/assets dist/",
     "postbuild": "npx shx cp -r src/assets dist/",
+    "postinstall": "patch-package",
     "gen:doc": "typedoc --entryPointStrategy expand ./src",
     "start:dapr": "dapr run --log-level debug --app-id pandora --dapr-http-max-request-size 300 --app-port 50053 --dapr-http-port 3503 --components-path ./.dapr/resources",
     "start:dev": "npm run build && node -r dotenv-safe/config dist/main.js"
   },
   "dependencies": {
     "@dapr/dapr": "^2.5.0",
-    "@discordjs/opus": "^0.9.0",
+    "@discordjs/opus": "^0.10.0",
     "@elastic/ecs-winston-format": "^1.5.3",
-    "bufferutil": "^4.0.8",
+    "bufferutil": "^4.0.9",
     "cyclic-32": "^1.2.0",
-    "discord-api-types": "^0.37.110",
-    "eris": "^0.17.2",
+    "discord-api-types": "^0.37.120",
+    "eris": "^0.18.0",
     "inversify": "^6.1.6",
+    "patch-package": "^8.0.1",
     "reflect-metadata": "^0.2.2",
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
     "winston": "^3.17.0",
-    "zlib-sync": "^0.1.9"
+    "zlib-sync": "^0.1.10"
   },
   "devDependencies": {
     "@fluffy-spoon/substitute": "^1.208.0",

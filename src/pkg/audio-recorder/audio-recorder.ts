@@ -153,7 +153,8 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
     newChunk.timestamp = timestamp;
     // If the userId is the bot itself or if it's somehow not defined,
     // abort recording this chunk
-    if (!userId || userId === this.voiceChannel?.client?.user?.id) return;
+    if (!userId || userId === this.voiceChannel?.guild?.shard?.client?.user?.id)
+      return;
     const member = this.voiceChannel?.guild?.members?.get(userId);
     // Also abort if member is not found
     if (!member) return;

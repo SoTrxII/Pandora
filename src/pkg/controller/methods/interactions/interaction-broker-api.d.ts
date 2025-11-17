@@ -1,6 +1,6 @@
 import {
   ApplicationCommand,
-  ApplicationCommandStructure,
+  ApplicationCommandCreateOptions,
   AutocompleteInteraction,
   CommandInteraction,
   ComponentInteraction,
@@ -41,8 +41,8 @@ export interface IBotImpl {
    * @param command
    */
   createCommand(
-    command: ApplicationCommandStructure
-  ): Promise<ApplicationCommand>;
+    command: ApplicationCommandCreateOptions<boolean>
+  ): Promise<ApplicationCommand<boolean>>;
 
   /** Pointer to a function allowing a fetch a channel */
   getMessage: (
