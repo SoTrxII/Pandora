@@ -8,20 +8,19 @@ import {
 import * as EventEmitter from "events";
 import { injectable } from "inversify";
 import {
-  ApplicationCommand,
-  ApplicationCommandCreateOptions,
   Client,
-  CommandInteraction,
-  Constants,
+  ChatInputCommandInteraction,
   Interaction,
   Message,
-  TextableChannel,
-} from "eris";
-import { ChannelType } from "discord-api-types/v10";
+  TextChannel,
+  ApplicationCommandType,
+  ChannelType,
+  ApplicationCommandData,
+} from "discord.js";
 
 @injectable()
 export class InteractionBroker extends EventEmitter implements IController {
-  /** Eris Client */
+  /** Discord.js Client */
   private boImpl: Client;
 
   /** This controller state*/
@@ -31,32 +30,31 @@ export class InteractionBroker extends EventEmitter implements IController {
   private static readonly CLASS_ID = "INTERACTIONS";
 
   /** Last message from the last interaction having triggered a command */
-  private messageBuffer: Message<TextableChannel>;
+  private messageBuffer: Message;
 
   /** Last interaction having triggered a command */
-  private interactionBuffer: CommandInteraction;
+  private interactionBuffer: ChatInputCommandInteraction;
 
   /** Commands to register against discord's api gateway */
-  private readonly commands: ApplicationCommandCreateOptions<boolean>[];
+  private readonly commands: ApplicationCommandData[];
 
   /** Default commands to register */
-  private static readonly DEFAULT_COMMANDS: ApplicationCommandCreateOptions<boolean>[] =
-    [
-      {
-        name: "record",
-        description: "Record the voice channel the user is in",
-        type: Constants.ApplicationCommandTypes.CHAT_INPUT,
-      },
-      {
-        name: "end",
-        description: "End a previously started recording",
-        type: Constants.ApplicationCommandTypes.CHAT_INPUT,
-      },
-    ];
+  private static readonly DEFAULT_COMMANDS: ApplicationCommandData[] = [
+    {
+      name: "record",
+      description: "Record the voice channel the user is in",
+      type: ApplicationCommandType.ChatInput,
+    },
+    {
+      name: "end",
+      description: "End a previously started recording",
+      type: ApplicationCommandType.ChatInput,
+    },
+  ];
 
   constructor(
     private readonly clientProvider: () => Promise<Client>,
-    commands: ApplicationCommandCreateOptions<boolean>[] = []
+    commands: ApplicationCommandData[] = []
   ) {
     super();
     this.commands = commands ?? InteractionBroker.DEFAULT_COMMANDS;
@@ -66,13 +64,12 @@ export class InteractionBroker extends EventEmitter implements IController {
    * Register all commands against discord gateway api
    * @param commands
    */
-  async registerCommands(
-    commands: ApplicationCommandCreateOptions<boolean>[]
-  ): Promise<void> {
+  async registerCommands(commands: ApplicationCommandData[]): Promise<void> {
     try {
-      await Promise.all(
-        commands.map(async (c) => await this.boImpl.createCommand(c))
-      );
+      if (!this.boImpl.application) {
+        throw new Error("Client application not ready");
+      }
+      await this.boImpl.application.commands.set(commands);
       this.emit("debug", "Slash commands registration complete");
     } catch (e) {
       this.emit("error", "Couldn't register commands");
@@ -84,15 +81,14 @@ export class InteractionBroker extends EventEmitter implements IController {
     messageId: string,
     voiceChannelId: string
   ): Promise<void> {
-    const message = await this.boImpl.getMessage(textChannelId, messageId);
-    this.messageBuffer = message;
-    if (message.channel?.type !== ChannelType.GuildText) {
+    const channel = await this.boImpl.channels.fetch(textChannelId);
+    if (!channel?.isTextBased()) {
       throw new BrokerError(
-        `while starting record : Expected text channel but got ${
-          ChannelType.GuildText[message.channel?.type]
-        }`
+        `while starting record : Expected text channel but got ${channel?.type}`
       );
     }
+    const message = await (channel as TextChannel).messages.fetch(messageId);
+    this.messageBuffer = message;
     if (voiceChannelId === undefined || voiceChannelId === null) {
       throw new BrokerError(
         `while starting record : Expected user to be in a voice channel`
@@ -122,32 +118,35 @@ export class InteractionBroker extends EventEmitter implements IController {
     this.boImpl = await this.clientProvider();
     await this.registerCommands(this.commands);
 
-    // Get rid as soon as possible of the Eris Message
+    // Listen for slash command interactions
     this.boImpl.on("interactionCreate", async (i) => {
-      if (i instanceof CommandInteraction) await this.handleInteraction(i);
+      if (i.isChatInputCommand()) await this.handleInteraction(i);
     });
   }
 
-  async handleInteraction(interaction: CommandInteraction) {
-    switch (interaction.data.name) {
+  async handleInteraction(interaction: ChatInputCommandInteraction) {
+    switch (interaction.commandName) {
       case "record":
         try {
-          await interaction.acknowledge();
+          await interaction.deferReply();
           // Buffering the interaction to be able to reply to it
           this.interactionBuffer = interaction;
-          const origMessage = await interaction.getOriginalMessage();
+          const member = interaction.member;
+          const voiceChannelId = (member as any)?.voice?.channelId;
+          await interaction.editReply("Processing...");
+          const origMessage = await interaction.fetchReply();
           await this.attemptStartEvent(
-            interaction.channel.id,
+            interaction.channelId,
             origMessage.id,
-            interaction?.member?.voiceState?.channelID
+            voiceChannelId
           );
           this.state = {
             name: InteractionBroker.CLASS_ID,
             data: {
               messageId: origMessage.id,
-              textChannelId: interaction.channel.id,
-              voiceChannelId: interaction?.member?.voiceState?.channelID,
-              authorId: interaction?.member?.id,
+              textChannelId: interaction.channelId,
+              voiceChannelId: voiceChannelId,
+              authorId: interaction.user.id,
             },
           };
           return;
@@ -157,12 +156,12 @@ export class InteractionBroker extends EventEmitter implements IController {
         break;
       case "end":
         try {
-          await interaction.acknowledge();
+          await interaction.deferReply();
           // Buffering the interaction to be able to reply to it
           this.interactionBuffer = interaction;
           await this.attemptEndEvent({
-            id: interaction?.member.id,
-            username: interaction?.member?.username,
+            id: interaction.user.id,
+            username: interaction.user.username,
           });
           this.state = {
             name: InteractionBroker.CLASS_ID,
@@ -175,7 +174,7 @@ export class InteractionBroker extends EventEmitter implements IController {
       default:
         this.emit(
           "debug",
-          `Interaction received ${interaction.data.name}, but no handler found`
+          `Interaction received ${interaction.commandName}, but no handler found`
         );
     }
   }
@@ -237,9 +236,12 @@ export class InteractionBroker extends EventEmitter implements IController {
     // which make it look like the bot crashed
 
     if (this.interactionBuffer !== undefined) {
-      await this.interactionBuffer.editOriginalMessage(message);
-    } else {
-      await this.messageBuffer.channel.createMessage(message);
+      await this.interactionBuffer.editReply(message);
+    } else if (
+      this.messageBuffer.channel &&
+      "send" in this.messageBuffer.channel
+    ) {
+      await this.messageBuffer.channel.send(message);
     }
     return 1;
   }

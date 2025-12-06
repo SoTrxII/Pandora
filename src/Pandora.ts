@@ -1,6 +1,5 @@
 import { inject, injectable, optional } from "inversify";
-import { ChannelType } from "discord-api-types/v10";
-import { Client, VoiceChannel } from "eris";
+import { Client, ChannelType, VoiceChannel } from "discord.js";
 import { TYPES } from "./types";
 import {
   IController,
@@ -82,11 +81,9 @@ export class Pandora {
     // Init control methods
     await this.unifiedController.initialize();
 
-    this.client.on("connect", () => {
+    this.client.once("ready", () => {
       this.logger.info("Up & Ready");
     });
-
-    await this.client.connect();
 
     // Error restart handling
     if (await this.isResumingFromError()) {
@@ -254,9 +251,14 @@ export class Pandora {
 
     try {
       // Record has started
-      this.client.editStatus("online", {
-        name: `${(channel as VoiceChannel).name}`,
-        type: 2,
+      this.client.user?.setPresence({
+        status: "online",
+        activities: [
+          {
+            name: `${(channel as VoiceChannel).name}`,
+            type: 2, // LISTENING
+          },
+        ],
       });
     } catch (e) {
       // We don't care if this fails
@@ -302,7 +304,10 @@ export class Pandora {
     }
 
     try {
-      this.client.editStatus("online", null);
+      this.client.user?.setPresence({
+        status: "online",
+        activities: [],
+      });
     } catch (e) {
       // We don't care if this fails
     }
@@ -347,20 +352,20 @@ export class Pandora {
   }
 
   /**
-   * Return a Eris voicechannel from its id
+   * Return a Discord.js voicechannel from its id
    * @param id
    */
   getVoiceChannelFromId(id: string) {
     // Verify preconditions :
     // -> A voice channel exists and can be recorded
-    const channel = this.client.getChannel(id);
-    if (channel === undefined || channel.type !== ChannelType.GuildVoice) {
+    const channel = this.client.channels.cache.get(id);
+    if (!channel || channel.type !== ChannelType.GuildVoice) {
       throw new Error("Invalid channel");
     }
     // TODO: Check if the bot has the correct permissions to join and listen
     // to the voice channel
 
-    return channel;
+    return channel as VoiceChannel;
   }
 
   /**

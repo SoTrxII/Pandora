@@ -2,7 +2,7 @@ import { resolve } from "path";
 import { createWriteStream, existsSync, mkdirSync } from "fs";
 import { Writable } from "stream";
 import { OggEncoder } from "./ogg-encoder";
-import { User } from "eris";
+import { User } from "discord.js";
 import { Chunk } from "../../pkg/audio-recorder/audio-recorder-api";
 import { OpusEncoder } from "@discordjs/opus";
 import { IMultiTracksEncoder, IRecordingDetails } from "./multi-tracks-encoder";

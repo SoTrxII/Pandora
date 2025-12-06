@@ -12,8 +12,14 @@ import { IPubSubServerProxy } from "./pub-sub-broker-api";
 export class DaprServerAdapter implements IPubSubServerProxy {
   private readonly server: DaprServer;
 
-  constructor(private port = "50051", daprPort = "3500") {
-    this.server = new DaprServer("127.0.0.1", port, "127.0.0.1", daprPort);
+  constructor(
+    private port = "50051",
+    daprPort = "3500"
+  ) {
+    this.server = new DaprServer({
+      serverPort: port,
+      clientOptions: { daprPort },
+    });
   }
 
   async start(): Promise<void> {

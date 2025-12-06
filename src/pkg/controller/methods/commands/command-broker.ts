@@ -6,9 +6,8 @@ import {
   IRecordAttemptInfo,
   RECORD_EVENT,
 } from "../../bot-control.types";
-import { Message, TextableChannel } from "eris";
+import { Message, ChannelType } from "discord.js";
 import { IBotImpl } from "./command-broker-external-api";
-import { ChannelType } from "discord-api-types/v10";
 import { injectable } from "inversify";
 
 /**
@@ -19,7 +18,7 @@ export class CommandBroker extends EventEmitter implements IController {
   /** Class identifier, used to prevent using reflection on the class name which can be flaky */
   private static readonly CLASS_ID = "COMMAND";
   /** Last message having triggered a command */
-  private messageBuffer: Message<TextableChannel>;
+  private messageBuffer: Message;
   /** This controller state*/
   private state: ICommandBrokerState;
   /** Bot framework specific functions */
@@ -41,17 +40,18 @@ export class CommandBroker extends EventEmitter implements IController {
   async start(): Promise<void> {
     this.boImpl = await this.clientProvider();
 
-    // Get rid as soon as possible of the Eris Message
+    // Listen for messages
     this.boImpl.on("messageCreate", async (m) => {
-      if (await this.isMsgProcessable(m.content, m.member.id)) {
+      if (await this.isMsgProcessable(m.content, m.author.id)) {
+        const member = m.guild?.members.cache.get(m.author.id);
         return this.processMessage(
           m.id,
-          m.channel.id,
+          m.channelId,
           this.getMsgTrigger(m.content),
           {
-            voiceChannelId: m.member?.voiceState?.channelID,
-            id: m.member.id,
-            username: m.member.username,
+            voiceChannelId: member?.voice?.channelId,
+            id: m.author.id,
+            username: m.author.username,
           }
         );
       }
@@ -158,15 +158,14 @@ export class CommandBroker extends EventEmitter implements IController {
     messageId: string,
     voiceChannelId: string
   ) {
-    const message = await this.boImpl.getMessage(textChannelId, messageId);
-    this.messageBuffer = message;
-    if (message.channel?.type !== ChannelType.GuildText) {
+    const channel = await this.boImpl.channels.fetch(textChannelId);
+    if (!channel || !channel.isTextBased()) {
       throw new BrokerError(
-        `while starting record : Expected text channel but got ${
-          ChannelType.GuildText[message.channel?.type]
-        }`
+        `while starting record : Expected text channel but got ${channel?.type}`
       );
     }
+    const message = await channel.messages.fetch(messageId);
+    this.messageBuffer = message;
     if (voiceChannelId === undefined || voiceChannelId === null) {
       throw new BrokerError(
         `while starting record : Expected user to be in a voice channel`
@@ -190,9 +189,9 @@ export class CommandBroker extends EventEmitter implements IController {
       );
     }
     // Check author
-    if (this.messageBuffer.member.id !== endAuthor.id) {
+    if (this.messageBuffer.author.id !== endAuthor.id) {
       throw new BrokerError(
-        `while finishing record : ${this.messageBuffer.member.username} must end the recording himself (not ${endAuthor.username})`
+        `while finishing record : ${this.messageBuffer.author.username} must end the recording himself (not ${endAuthor.username})`
       );
     }
     this.emit("end");
@@ -203,7 +202,9 @@ export class CommandBroker extends EventEmitter implements IController {
       return Promise.resolve(0);
     }
 
-    await this.messageBuffer.channel.createMessage(message);
+    if (this.messageBuffer.channel && "send" in this.messageBuffer.channel) {
+      await this.messageBuffer.channel.send(message);
+    }
     return 1;
   }
 
@@ -279,7 +280,7 @@ export class CommandBroker extends EventEmitter implements IController {
    * @private
    */
   private async isAuthorSelf(msgAuthorId: string): Promise<boolean> {
-    return msgAuthorId === this.boImpl?.client?.user?.id;
+    return msgAuthorId === this.boImpl?.user?.id;
   }
 }
 

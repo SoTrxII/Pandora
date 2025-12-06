@@ -1,4 +1,4 @@
-import { User } from "eris";
+import { User } from "discord.js";
 import { Chunk } from "../../pkg/audio-recorder/audio-recorder-api";
 
 export interface IRecordingDetails {

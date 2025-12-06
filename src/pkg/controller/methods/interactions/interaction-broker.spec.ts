@@ -1,14 +1,19 @@
 import "reflect-metadata";
 import { InteractionBroker } from "./interaction-broker";
 import { Arg, Substitute } from "@fluffy-spoon/substitute";
-import { Client, CommandInteraction, GuildChannel, Message } from "eris";
+import {
+  Client,
+  ChatInputCommandInteraction,
+  GuildChannel,
+  Message,
+  ChannelType,
+} from "discord.js";
 import {
   BrokerError,
   IController,
   IRecordAttemptInfo,
   RECORD_EVENT,
 } from "../../bot-control.types";
-import { ChannelType } from "discord-api-types/v10";
 
 describe("Interactions broker", () => {
   describe("Process commands", () => {
@@ -17,29 +22,27 @@ describe("Interactions broker", () => {
       ib = await getInteractionBroker();
     });
     it("Known command start : OK", async () => {
-      const startInteraction = Substitute.for<CommandInteraction>();
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
-      startInteraction.data.returns({ name: "record" });
+      const startInteraction = Substitute.for<ChatInputCommandInteraction>();
+      startInteraction.commandName.returns("record");
+      startInteraction.deferReply().resolves(undefined as any);
+      startInteraction.editReply(Arg.any()).resolves({} as any);
+      startInteraction.fetchReply().resolves({} as any);
       await ib.start();
       await expect(
         ib.handleInteraction(startInteraction)
       ).resolves.not.toThrow();
     });
     it("Known command end : OK", async () => {
-      const endInteraction = Substitute.for<CommandInteraction>();
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
-      endInteraction.data.returns({ name: "end" });
+      const endInteraction = Substitute.for<ChatInputCommandInteraction>();
+      endInteraction.commandName.returns("end");
+      endInteraction.deferReply().resolves(undefined as any);
       await ib.start();
       // In this case, this should trigger an error because there is no started record
       await expect(ib.handleInteraction(endInteraction)).rejects.toThrow();
     });
     it("Unknown command : KO", async () => {
-      const unknownInteraction = Substitute.for<CommandInteraction>();
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
-      unknownInteraction.data.returns({ name: "unknown" });
+      const unknownInteraction = Substitute.for<ChatInputCommandInteraction>();
+      unknownInteraction.commandName.returns("unknown");
       await expect(
         ib.handleInteraction(unknownInteraction)
       ).resolves.not.toThrow();
@@ -137,10 +140,17 @@ describe("Interactions broker", () => {
 function getInteractionBroker() {
   const fakeClient = Substitute.for<Client>();
   const fakeMessage = Substitute.for<Message>();
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  fakeMessage.channel.returns({ type: ChannelType.GuildText });
-  fakeClient.getMessage(Arg.all()).resolves(fakeMessage);
+  const fakeChannel = Substitute.for<any>();
+
+  // Mock channel methods
+  fakeChannel.isTextBased().returns(true);
+  fakeChannel.messages.returns({ fetch: () => Promise.resolve(fakeMessage) });
+
+  // Mock client methods
+  fakeClient.channels.returns({
+    fetch: () => Promise.resolve(fakeChannel),
+  } as any);
+
   const clientProvider = () => Promise.resolve(fakeClient);
   return new InteractionBroker(clientProvider);
 }

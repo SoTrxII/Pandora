@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "build",
+      "problemMatcher": ["$tsc"],
+      "label": "npm: build",
+      "detail": "tsc && npx shx cp package.json dist/package.json && npx shx cp -r src/assets dist/"
+    }
+  ]
+}

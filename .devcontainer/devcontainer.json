@@ -8,12 +8,10 @@
     "ghcr.io/devcontainers-extra/features/ffmpeg-apt-get:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-      "packages": [
-        "python3-distutils"
-      ]
-    }
+      "packages": ["python3-distutils"]
+    },
     // python3-distutils
-    //"ghcr.io/dapr/cli/dapr-cli:0": {}
+    "ghcr.io/dapr/cli/dapr-cli:0": {}
   },
   // Can fail, doesn't matter
   //"postStartCommand": "dapr init ; pnpm install --force",
@@ -32,5 +30,6 @@
         }
       }
     }
-  }
+  },
+  "postStartCommand": "bash .devcontainer/post-start.sh"
 }

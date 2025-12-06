@@ -1,21 +1,14 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import "reflect-metadata";
 import { CommandBroker } from "./command-broker";
-import { Substitute } from "@fluffy-spoon/substitute";
-import {
-  FileContent,
-  Message,
-  MessageContent,
-  PossiblyUncachedTextableChannel,
-  TextableChannel,
-} from "eris";
+import { Substitute, Arg } from "@fluffy-spoon/substitute";
+import { Message, ChannelType } from "discord.js";
 import {
   BrokerError,
   IController,
   IRecordAttemptInfo,
   RECORD_EVENT,
 } from "../../bot-control.types";
-import { ChannelType } from "discord-api-types/v10";
 
 const BOT_ID = "1";
 const BOT_CMD_PREFIX = "!!";
@@ -69,16 +62,15 @@ describe("Command Broker", () => {
       cb = await getCommandBroker();
     });
     it("Known command : OK", async () => {
-      const rej = await expect(
+      // processMessage handles the start command and emits start event
+      await expect(
         cb.processMessage("1", "1", BOT_COMMANDS.start, {
           id: "2",
           username: "test",
           voiceChannelId: "1",
         })
-      ).rejects.toThrowError("text channel");
-      // With this configuration, we should get a text channel undefined error
-      // This means that the command has been accepted but the record cannot start
-      // this is ok as this isn't what we're testing there
+      ).resolves.not.toThrow();
+      // The command was processed successfully
     });
     it("Unknown command : KO", async () => {
       const rej = await expect(
@@ -97,34 +89,52 @@ describe("Command Broker", () => {
       const mockFetchMsg = (
         channelId: string,
         messageId: string
-      ): Promise<Message<TextableChannel>> => {
-        const message = Substitute.for<Message<TextableChannel>>();
-        message.channel.type = ChannelType.DM;
-        message.member.voiceState = undefined;
+      ): Promise<Message> => {
+        const message = Substitute.for<Message>();
+        const mockAuthor = Substitute.for<any>();
+        mockAuthor.id.returns("2");
+        mockAuthor.username.returns("test");
+        //@ts-ignore
+        message.author.returns(mockAuthor);
+        //@ts-ignore
+        message.channel.returns({ type: ChannelType.DM });
+        const mockVoiceState = Substitute.for<any>();
+        mockVoiceState.channelId.returns(null);
+        //@ts-ignore
+        message.member.returns({ voice: mockVoiceState });
         return Promise.resolve(message);
       };
-      const cb = await getCommandBroker(undefined, mockFetchMsg);
-      const rej = await expect(cb.attemptStartEvent("2", "2", "2")).rejects;
-      // Check error type
-      await rej.toThrowError(BrokerError);
-      // and message
-      await rej.toThrow("text channel");
+      const cb = await getCommandBrokerWithChannel(false, mockFetchMsg);
+      await expect(cb.attemptStartEvent("2", "2", "2")).rejects.toThrow(
+        BrokerError
+      );
+      await expect(cb.attemptStartEvent("2", "2", "2")).rejects.toThrow(
+        "text channel"
+      );
     });
 
     it("Error when the user wasn't in a voice channel", async () => {
       const mockFetchMsg = (
         channelId: string,
         messageId: string
-      ): Promise<Message<TextableChannel>> => {
-        const message = Substitute.for<Message<TextableChannel>>();
+      ): Promise<Message> => {
+        const message = Substitute.for<Message>();
+        const mockAuthor = Substitute.for<any>();
+        mockAuthor.id.returns("2");
+        mockAuthor.username.returns("test");
+        //@ts-ignore
+        message.author.returns(mockAuthor);
         // TS check against the mocked object methods, but the mock has more
         //@ts-ignore
         message.channel.returns({ type: ChannelType.GuildText });
-        message.member.voiceState = undefined;
+        const mockVoiceState = Substitute.for<any>();
+        mockVoiceState.channelId.returns(null);
+        //@ts-ignore
+        message.member.returns({ voice: mockVoiceState });
         return Promise.resolve(message);
       };
-      const cb = await getCommandBroker(undefined, mockFetchMsg);
-      const rej = await expect(cb.attemptStartEvent("2", "2", undefined))
+      const cb = await getCommandBroker(undefined, getMockFetchMsg());
+      const rej = await expect(cb.attemptStartEvent("2", "2", null as any))
         .rejects;
 
       // Check error type
@@ -137,12 +147,20 @@ describe("Command Broker", () => {
       const mockFetchMsg = (
         channelId: string,
         messageId: string
-      ): Promise<Message<TextableChannel>> => {
-        const message = Substitute.for<Message<TextableChannel>>();
+      ): Promise<Message> => {
+        const message = Substitute.for<Message>();
+        const mockAuthor = Substitute.for<any>();
+        mockAuthor.id.returns("2");
+        mockAuthor.username.returns("test");
+        //@ts-ignore
+        message.author.returns(mockAuthor);
         // TS check against the mocked object methods, but the mock has more
         //@ts-ignore
         message.channel.returns({ type: ChannelType.GuildText });
-        message.member.voiceState = undefined;
+        const mockVoiceState = Substitute.for<any>();
+        mockVoiceState.channelId.returns(null);
+        //@ts-ignore
+        message.member.returns({ voice: mockVoiceState });
         return Promise.resolve(message);
       };
       const cb = await getCommandBroker(undefined, mockFetchMsg);
@@ -186,11 +204,26 @@ describe("Command Broker", () => {
       await rej.toThrow("end a record");
     });
     it("Should fire a 'end' event when ok", async () => {
-      const cb = await getCommandBroker(undefined, getMockFetchMsg());
+      const mockFetchMsg = (
+        channelId: string,
+        messageId: string
+      ): Promise<Message> => {
+        // Create message as plain object to avoid Substitute issues with nested properties
+        const message = {
+          author: { id: "2", username: "test" },
+          channel: { type: ChannelType.GuildText },
+          member: {
+            id: "2",
+            voice: { channelId: "voice-123" },
+          },
+        } as any as Message;
+        return Promise.resolve(message);
+      };
+      const cb = await getCommandBroker(undefined, mockFetchMsg);
       const startEventFired = waitEvent<IRecordAttemptInfo>(cb, "start");
       // TODO :: Type check the end event return type
       const endEventFired = waitEvent<any>(cb, "end");
-      await cb.attemptStartEvent("2", "2", "2");
+      await cb.attemptStartEvent("2", "2", "voice-123");
       await expect(startEventFired).resolves.not.toThrow();
       await cb.attemptEndEvent({ id: "2", username: "test" });
       await expect(endEventFired).resolves.not.toThrow();
@@ -199,13 +232,9 @@ describe("Command Broker", () => {
   describe("Start the broker", () => {
     const mockMsgSubPointer = (
       event: "messageCreate",
-      listener: (message: Message<PossiblyUncachedTextableChannel>) => void
+      listener: (message: Message) => void
     ) => {
-      setTimeout(
-        () =>
-          listener(Substitute.for<Message<PossiblyUncachedTextableChannel>>()),
-        2000
-      );
+      setTimeout(() => listener(Substitute.for<Message>()), 2000);
     };
     let cb;
     beforeAll(async () => {
@@ -277,30 +306,30 @@ describe("Command Broker", () => {
       await expect(cb.sendMessage("test")).resolves.toEqual(0);
     });
     it("Returns 1 when the message buffer is initialized", async () => {
-      // True if the createMessage method has been called at least once
+      // True if the send method has been called at least once
       let hasBeenCalled = false;
       const mockFetchMsg = (
         channelId: string,
         messageId: string
-      ): Promise<Message<TextableChannel>> => {
-        const message = Substitute.for<Message<TextableChannel>>();
-        // TS check against the mocked object methods, but the mock has more
-        //@ts-ignore
-        message.channel.returns({
-          type: ChannelType.GuildText,
-          createMessage(
-            content: MessageContent,
-            file?: FileContent | FileContent[]
-          ): Promise<any> {
-            hasBeenCalled = true;
-            return Promise.resolve(1);
+      ): Promise<Message> => {
+        // Use plain object for entire message to ensure properties work correctly
+        const message = {
+          author: { id: "2", username: "test" },
+          channel: {
+            type: ChannelType.GuildText,
+            send: async (content: any) => {
+              hasBeenCalled = true;
+              return {} as Message;
+            },
           },
-        });
-        message.member.voiceState = undefined;
+          member: {
+            voice: { channelId: null },
+          },
+        } as any as Message;
         return Promise.resolve(message);
       };
       const cb = await getCommandBroker(undefined, mockFetchMsg);
-      await cb.attemptStartEvent("2", "2", "2");
+      await cb.attemptStartEvent("2", "2", "voice-456");
       await expect(cb.sendMessage("test")).resolves.toEqual(1);
       expect(hasBeenCalled).toEqual(true);
     });
@@ -342,42 +371,94 @@ async function waitEvent<T>(
 async function getCommandBroker(
   subMsgPtr?: (
     event: "messageCreate",
-    listener: (message: Message<PossiblyUncachedTextableChannel>) => void
+    listener: (message: Message) => void
   ) => any,
-  fetchMsgPtr?: (
-    channelId: string,
-    messageId: string
-  ) => Promise<Message<TextableChannel>>
+  fetchMsgPtr?: (channelId: string, messageId: string) => Promise<Message>
 ): Promise<CommandBroker> {
   // Fake event handler to handle incoming discord messages
   const mockSubMsgPtr =
     Substitute.for<
-      (
-        event: "messageCreate",
-        listener: (message: Message<PossiblyUncachedTextableChannel>) => void
-      ) => any
+      (event: "messageCreate", listener: (message: Message) => void) => any
     >();
   // Fake query to retrieve details of a message from the discord API
   const mockFetchMsgPtr = (
     channelId: string,
     messageId: string
-  ): Promise<Message<TextableChannel>> => {
-    const mockMessage = Substitute.for<Message<TextableChannel>>();
-    mockMessage.member.id = "2";
+  ): Promise<Message> => {
+    const mockMessage = Substitute.for<Message>();
+    const mockAuthor = Substitute.for<any>();
+    mockAuthor.id.returns("2");
+    mockAuthor.username.returns("test");
+    //@ts-ignore
+    mockMessage.author.returns(mockAuthor);
+    //@ts-ignore
+    mockMessage.member.returns({ id: "2" });
     return Promise.resolve(mockMessage);
   };
+  const mockClient = Substitute.for<any>();
+  mockClient.user.returns({ id: "1" } as any);
+  mockClient.on = subMsgPtr ?? mockSubMsgPtr;
+  mockClient.channels.returns({
+    fetch: async (channelId: string) => {
+      const actualFetch = fetchMsgPtr ?? mockFetchMsgPtr;
+      // Use plain object instead of Substitute to ensure messages.fetch works
+      const channel = {
+        isTextBased: () => true,
+        type: ChannelType.GuildText,
+        messages: {
+          fetch: actualFetch,
+        },
+      };
+      return channel;
+    },
+  } as any);
   const cb = new CommandBroker(
     BOT_CMD_PREFIX,
-    () =>
-      Promise.resolve({
-        client: {
-          user: {
-            id: "1",
-          },
+    () => Promise.resolve(mockClient),
+    BOT_COMMANDS
+  );
+  await cb.start();
+  return cb;
+}
+
+async function getCommandBrokerWithChannel(
+  isTextBased: boolean,
+  fetchMsgPtr?: (channelId: string, messageId: string) => Promise<Message>
+): Promise<CommandBroker> {
+  const mockFetchMsgPtr = (
+    channelId: string,
+    messageId: string
+  ): Promise<Message> => {
+    const mockMessage = Substitute.for<Message>();
+    const mockAuthor = Substitute.for<any>();
+    mockAuthor.id.returns("2");
+    mockAuthor.username.returns("test");
+    //@ts-ignore
+    mockMessage.author.returns(mockAuthor);
+    //@ts-ignore
+    mockMessage.member.returns({ id: "2" });
+    return Promise.resolve(mockMessage);
+  };
+  const mockClient = Substitute.for<any>();
+  mockClient.user.returns({ id: "1" } as any);
+  mockClient.on = Substitute.for<any>();
+  mockClient.channels.returns({
+    fetch: async (channelId: string) => {
+      const actualFetch = fetchMsgPtr ?? mockFetchMsgPtr;
+      // Use plain object instead of Substitute to ensure messages.fetch works
+      const channel = {
+        isTextBased: () => isTextBased,
+        type: isTextBased ? ChannelType.GuildText : ChannelType.DM,
+        messages: {
+          fetch: actualFetch,
         },
-        on: subMsgPtr ?? mockSubMsgPtr,
-        getMessage: fetchMsgPtr ?? mockFetchMsgPtr,
-      }),
+      };
+      return channel;
+    },
+  } as any);
+  const cb = new CommandBroker(
+    BOT_CMD_PREFIX,
+    () => Promise.resolve(mockClient),
     BOT_COMMANDS
   );
   await cb.start();
@@ -387,31 +468,28 @@ async function getCommandBroker(
 function getMockFetchMsg(opt?: {
   errorChannel?: boolean;
   errorMember?: boolean;
-}): (
-  channelId: string,
-  messageId: string
-) => Promise<Message<TextableChannel>> {
-  return (
-    channelId: string,
-    messageId: string
-  ): Promise<Message<TextableChannel>> => {
-    const message = Substitute.for<Message<TextableChannel>>();
-    // TS check against the mocked object methods, but the mock has more
-    //@ts-ignore
-    message.channel.returns({ type: ChannelType.GuildText });
-    if (opt?.errorChannel !== undefined) {
-      //@ts-ignore
-      message.channel.returns({ type: ChannelType.DM });
-    }
+}): (channelId: string, messageId: string) => Promise<Message> {
+  return (channelId: string, messageId: string): Promise<Message> => {
+    // Use plain object to avoid Substitute issues
+    // When errorMember is true, use a different author ID to simulate wrong user
+    const authorId = opt?.errorMember ? "999" : "2";
+    const message: any = {
+      author: {
+        id: authorId,
+        username: opt?.errorMember ? "other-user" : "test",
+      },
+      channel: {
+        type: opt?.errorChannel ? ChannelType.DM : ChannelType.GuildText,
+      },
+    };
 
     if (opt?.errorMember === undefined) {
-      //@ts-ignore
-      message.member.returns({
-        id: "2",
-        voiceState: undefined,
-      });
+      message.member = {
+        id: authorId,
+        voice: { channelId: null },
+      };
     }
 
-    return Promise.resolve(message);
+    return Promise.resolve(message as Message);
   };
 }

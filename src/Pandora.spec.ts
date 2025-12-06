@@ -2,7 +2,7 @@
 import "reflect-metadata";
 import { Pandora } from "./Pandora";
 import { Arg, Substitute } from "@fluffy-spoon/substitute";
-import { Client } from "eris";
+import { Client } from "discord.js";
 import {
   IController,
   IControllerState,

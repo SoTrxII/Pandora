@@ -2,7 +2,7 @@
 # We're using yarn berry in legacy node_modules mode. PnP isn't that reliable for the moment
 FROM node:22-alpine3.20 AS build
 WORKDIR /app
-RUN apk add python3 make alpine-sdk yarn py3-setuptools
+RUN apk add python3 make alpine-sdk yarn py3-setuptools libsodium-dev
 COPY . /app/
 # Add nodelinker to node modules if it doesn't exists
 RUN corepack enable \
@@ -11,12 +11,14 @@ RUN corepack enable \
 RUN yarn install
 RUN yarn run build
 
+FROM build AS test
+RUN yarn test --no-coverage
+
 FROM node:22-alpine3.20 AS prod
 WORKDIR /app
 COPY --from=build /app/dist /app
-COPY --from=build /app/patches /app/patches
-RUN apk add --no-cache --virtual=.build-deps alpine-sdk python3 py3-setuptools yarn \
-    && apk add ffmpeg \
+RUN apk add --no-cache --virtual=.build-deps alpine-sdk python3 py3-setuptools yarn libsodium-dev \
+    && apk add ffmpeg libsodium \
     && npm install -g pm2 \
     && corepack enable \
     && corepack prepare yarn@stable --activate \

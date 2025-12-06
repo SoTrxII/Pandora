@@ -1,4 +1,4 @@
-import { VoiceChannel } from "eris";
+import { VoiceChannel } from "discord.js";
 
 type AccurateTime = [number, number];
 

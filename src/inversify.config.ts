@@ -18,7 +18,7 @@ import {
   IStoreProxy,
 } from "./pkg/state-store/state-store.api";
 import { ExternalStore } from "./pkg/state-store/external-store";
-import * as Eris from "eris";
+import { Client, GatewayIntentBits, ApplicationCommandType } from "discord.js";
 import { IBotImpl } from "./pkg/controller/methods/commands/command-broker-external-api";
 import { ILogger } from "./pkg/logger/logger-api";
 import { ecsLogger } from "./pkg/logger/logger-ecs";
@@ -29,7 +29,6 @@ import {
 } from "./pkg/controller/methods/pub-sub/pub-sub-broker-api";
 import { DaprServerAdapter } from "./pkg/controller/methods/pub-sub/dapr-server-adapter";
 import { InteractionBroker } from "./pkg/controller/methods/interactions/interaction-broker";
-import { Client, Constants } from "eris";
 import {
   IObjectStore,
   IObjectStoreProxy,
@@ -64,7 +63,7 @@ container
 /** State store */
 container
   .bind(TYPES.StoreProxy)
-  .toConstantValue(new DaprClient("localhost", DAPR_HTTP_PORT).state);
+  .toConstantValue(new DaprClient({ daprPort: DAPR_HTTP_PORT }).state);
 container
   .bind(TYPES.StateStore)
   .toConstantValue(
@@ -82,7 +81,7 @@ if (objComponent) {
     .bind<IObjectStoreProxy>(TYPES.ObjectStoreProxy)
     .toConstantValue(
       new DaprObjectStorageAdapter(
-        new DaprClient("localhost", DAPR_HTTP_PORT).binding,
+        new DaprClient({ daprPort: DAPR_HTTP_PORT }).binding,
         process.env.OBJECT_STORE_NAME
       )
     );
@@ -96,7 +95,7 @@ const PSComponent = process.env?.PUBSUB_NAME;
 if (PSComponent) {
   container
     .bind(TYPES.PubSubClientProxy)
-    .toConstantValue(new DaprClient("localhost", DAPR_HTTP_PORT).pubsub);
+    .toConstantValue(new DaprClient({ daprPort: DAPR_HTTP_PORT }).pubsub);
   container
     .bind(TYPES.PubSubServerProxy)
     .toConstantValue(new DaprServerAdapter(DAPR_SERVER_PORT, DAPR_HTTP_PORT));
@@ -111,27 +110,33 @@ if (PSComponent) {
     );
 }
 
-/** Eris client */
+/** Discord.js client */
 container.bind(TYPES.ClientProvider).toProvider((context) => {
   return () => {
     return new Promise((res, rej) => {
-      const client = new Eris.Client(process.env.PANDORA_TOKEN);
-      if (client.ready) res(client);
-      client.connect();
-      client.on("ready", () => {
+      const client = new Client({
+        intents: [
+          GatewayIntentBits.Guilds,
+          GatewayIntentBits.GuildVoiceStates,
+          GatewayIntentBits.GuildMessages,
+          GatewayIntentBits.MessageContent,
+        ],
+      });
+      client.once("clientReady", () => {
         console.log("Up and running");
         res(client);
       });
       client.on("error", (err) => {
         console.log(
-          `Catching connexion reset by peers. Eris should reconnect. Details : ${JSON.stringify(
+          `Catching connexion reset by peers. Discord.js should reconnect. Details : ${JSON.stringify(
             err
           )}`
         );
       });
+      client.login(process.env.PANDORA_TOKEN).catch(rej);
       setTimeout(() => {
-        if (client.ready) res(client);
-        else rej();
+        if (client.isReady()) res(client);
+        else rej(new Error("Client failed to connect within 20 seconds"));
       }, 20000);
     });
   };
@@ -163,12 +168,12 @@ if (process.env?.DISABLE_INTERACTION === undefined) {
         {
           name: "record",
           description: "Record the voice channel the user is in",
-          type: Constants.ApplicationCommandTypes.CHAT_INPUT,
+          type: ApplicationCommandType.ChatInput,
         },
         {
           name: "end",
           description: "End a previously started recording",
-          type: Constants.ApplicationCommandTypes.CHAT_INPUT,
+          type: ApplicationCommandType.ChatInput,
         },
       ]
     );
@@ -189,7 +194,7 @@ container
   .bind(TYPES.Pandora)
   .toConstantValue(
     new Pandora(
-      container.get<() => Promise<Eris.Client>>(TYPES.ClientProvider),
+      container.get<() => Promise<Client>>(TYPES.ClientProvider),
       container.get<IUnifiedBotController>(TYPES.UnifiedController),
       container.get<IRecorderService>(TYPES.AudioRecorder),
       container.get<IRecordingStore>(TYPES.StateStore),

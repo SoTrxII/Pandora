@@ -1,5 +1,12 @@
 import { AccurateTime, Chunk, IRecorderService } from "./audio-recorder-api";
-import { User, VoiceChannel, VoiceConnection, VoiceDataStream } from "eris";
+import { User, VoiceChannel } from "discord.js";
+import {
+  joinVoiceChannel,
+  VoiceConnection,
+  VoiceConnectionStatus,
+  EndBehaviorType,
+  getVoiceConnection,
+} from "@discordjs/voice";
 import { hrtime } from "process";
 import { IMultiTracksEncoder } from "../../internal/opus-encoder/multi-tracks-encoder";
 import { TYPES } from "../../types";
@@ -9,6 +16,11 @@ import { resolve } from "path";
 import { access } from "fs/promises";
 import * as EventEmitter from "events";
 import { constants } from "fs";
+import {
+  createAudioPlayer,
+  createAudioResource,
+  NoSubscriberBehavior,
+} from "@discordjs/voice";
 import Timeout = NodeJS.Timeout;
 
 export class InvalidRecorderStateError extends Error {}
@@ -40,9 +52,9 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
   private isRecording = false;
   private voiceChannel: VoiceChannel;
   private voiceConnection: VoiceConnection;
-  private voiceReceiver: VoiceDataStream;
   private pingProcess: Timeout;
   private startTime: AccurateTime;
+  private audioSubscriptions: Map<string, any> = new Map();
   // Active users, by ID
   private users = new Map<string, User>();
   // Our current track number
@@ -67,8 +79,13 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
   stopRecording(): void {
     if (!this.isRecording) throw new InvalidRecorderStateError("Not recording");
     clearInterval(this.pingProcess);
-    this.voiceReceiver.off("data", this.adaptChunk);
-    this.voiceChannel.leave();
+    // Unsubscribe from all audio streams
+    this.audioSubscriptions.forEach((stream) => stream.destroy());
+    this.audioSubscriptions.clear();
+    // Disconnect from voice
+    if (this.voiceConnection) {
+      this.voiceConnection.destroy();
+    }
     this.flushRemainingData();
     this.multiTracksEncoder.closeStreams();
     this.resetToBlankState();
@@ -88,27 +105,62 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
       channel: this.voiceChannel.name,
     });
     this.voiceConnection = await this.setupVoiceConnection();
-    this.voiceReceiver = this.voiceConnection.receive("opus");
-    this.voiceReceiver.on("data", (c, u, t) => this.adaptChunk(c, u, t));
+
+    // Subscribe to speaking events to capture audio from users
+    this.voiceConnection.receiver.speaking.on("start", (userId) => {
+      this.subscribeToUser(userId);
+    });
+
     this.voiceConnection.on("error", (err) => this.emit("error", err));
     return recordId;
   }
 
   /**
-   * Joins a voice channel and play a sample audio file.
-   * @throws an access error if the sample audio file is not defined
+   * Joins a voice channel and sets up audio player.
+   * @throws an error if connection fails
    */
   async setupVoiceConnection(): Promise<VoiceConnection> {
-    const voiceConnection = await this.voiceChannel.join({ opusOnly: true });
+    const connection = joinVoiceChannel({
+      channelId: this.voiceChannel.id,
+      guildId: this.voiceChannel.guild.id,
+      adapterCreator: this.voiceChannel.guild.voiceAdapterCreator as any,
+      selfDeaf: false,
+      selfMute: false,
+    });
+
+    // Wait for the connection to be ready
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Voice connection timeout"));
+      }, 10000);
+
+      connection.on(VoiceConnectionStatus.Ready, () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      connection.on(VoiceConnectionStatus.Disconnected, () => {
+        clearTimeout(timeout);
+        reject(new Error("Voice connection failed"));
+      });
+    });
+
+    // Play welcome sound if available
     try {
       await access(AudioRecorder.SAMPLE_SOUND_PATH, constants.F_OK);
-      voiceConnection.play(AudioRecorder.SAMPLE_SOUND_PATH, { format: "ogg" });
-      voiceConnection.stopPlaying();
-      return voiceConnection;
+      const player = createAudioPlayer({
+        behaviors: { noSubscriber: NoSubscriberBehavior.Play },
+      });
+      const resource = createAudioResource(AudioRecorder.SAMPLE_SOUND_PATH);
+      connection.subscribe(player);
+      player.play(resource);
+      // Stop after a brief moment
+      setTimeout(() => player.stop(), 100);
     } catch (e) {
-      this.voiceChannel.leave();
-      throw e;
+      // Welcome sound optional, continue anyway
     }
+
+    return connection;
   }
 
   /**
@@ -118,7 +170,7 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
   private resetToBlankState(): void {
     this.voiceChannel = undefined;
     this.voiceConnection = undefined;
-    this.voiceReceiver = undefined;
+    this.audioSubscriptions.clear();
     this.startTime = undefined;
     this.users.clear();
     this.trackNo = 1;
@@ -145,17 +197,38 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
   }
 
   /**
-   * This process takes an Eris audio chunk and (seems to) converts it
-   * to Discord.js format
+   * Subscribe to a user's audio stream
+   */
+  private subscribeToUser(userId: string): void {
+    if (this.audioSubscriptions.has(userId)) return;
+
+    const audioStream = this.voiceConnection.receiver.subscribe(userId, {
+      end: {
+        behavior: EndBehaviorType.Manual,
+      },
+    });
+
+    let timestamp = 0;
+    audioStream.on("data", (chunk: Buffer) => {
+      this.adaptChunk(chunk, userId, timestamp);
+      timestamp += 960; // 20ms at 48kHz
+    });
+
+    this.audioSubscriptions.set(userId, audioStream);
+  }
+
+  /**
+   * This process takes an audio chunk and processes it
    */
   adaptChunk(chunk: Buffer, userId: string, timestamp: number) {
     const newChunk: Chunk = Buffer.from(chunk) as unknown as Chunk;
     newChunk.timestamp = timestamp;
     // If the userId is the bot itself or if it's somehow not defined,
     // abort recording this chunk
-    if (!userId || userId === this.voiceChannel?.guild?.shard?.client?.user?.id)
-      return;
-    const member = this.voiceChannel?.guild?.members?.get(userId);
+    const botId = this.voiceChannel?.client?.user?.id;
+    if (!userId || userId === botId) return;
+
+    const member = this.voiceChannel?.guild?.members?.cache.get(userId);
     // Also abort if member is not found
     if (!member) return;
     return this.onReceive(member.user, newChunk);

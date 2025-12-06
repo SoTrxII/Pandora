@@ -9,7 +9,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { IRecordingDetails } from "./multi-tracks-encoder";
 import { setTimeout } from "timers/promises";
-import { User } from "eris";
+import { User } from "discord.js";
 
 describe("Multi track encoder", () => {
   let mte: OpusMultiTracksEncoder;
