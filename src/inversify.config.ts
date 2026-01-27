@@ -118,8 +118,9 @@ container.bind(TYPES.ClientProvider).toProvider((context) => {
         intents: [
           GatewayIntentBits.Guilds,
           GatewayIntentBits.GuildVoiceStates,
-          GatewayIntentBits.GuildMessages,
-          GatewayIntentBits.MessageContent,
+          // Note: GuildMessages and MessageContent intents removed
+          // MessageContent is a privileged intent - enable it in Discord Developer Portal if you need text commands
+          // For slash commands only, these intents are not required
         ],
       });
       client.once("clientReady", () => {
