@@ -40,11 +40,11 @@ describe("PubSub broker", () => {
       "Valid event %s received",
       async (evt) => {
         await expect(broker.signalState(evt, undefined)).resolves.not.toThrow();
-      }
+      },
     );
     it("Invalid event received", async () => {
       await expect(
-        broker.signalState("test" as any, undefined)
+        broker.signalState("test" as any, undefined),
       ).rejects.toThrow();
     });
   });
@@ -58,13 +58,13 @@ describe("PubSub broker", () => {
     });
     it("Give a valid state while recording", async () => {
       await expect(
-        broker.attemptStartEvent(goodStartPayloads[0])
+        broker.attemptStartEvent(goodStartPayloads[0]),
       ).resolves.not.toThrow();
       const state = await broker.getState();
       expect(state.name).toEqual(broker.toString());
       expect(state.data).not.toBeUndefined();
       expect(state.data.recVoiceChannelId).toEqual(
-        goodStartPayloads[0].voiceChannelId
+        goodStartPayloads[0].voiceChannelId,
       );
     });
     describe("Resuming from state", () => {
@@ -114,7 +114,7 @@ describe("PubSub broker", () => {
         await expect(broker.attemptStartEvent(payload)).resolves.not.toThrow();
         await expect(startFired).resolves.not.toThrow();
         expect(await startFired).toEqual(payload);
-      }
+      },
     );
     it.each(badStartPayloads)(
       "Fire a error event if something is wrong",
@@ -123,7 +123,7 @@ describe("PubSub broker", () => {
         await expect(broker.attemptStartEvent(payload)).resolves.not.toThrow();
         await expect(errorFired).resolves;
         expect((await errorFired)?.message).toContain("invalid start payload");
-      }
+      },
     );
   });
 
@@ -137,11 +137,11 @@ describe("PubSub broker", () => {
     it("Ok when a specific voice channel id is passed along", async () => {
       const endFired = waitEvent<IRecordAttemptInfo>(broker, "end");
       await expect(
-        broker.attemptStartEvent(goodStartPayloads[0])
+        broker.attemptStartEvent(goodStartPayloads[0]),
       ).resolves.not.toThrow();
 
       await expect(
-        broker.attemptEndEvent(goodStartPayloads[0])
+        broker.attemptEndEvent(goodStartPayloads[0]),
       ).resolves.not.toThrow();
       await expect(endFired).resolves.not.toThrow();
       expect(await endFired).toEqual(undefined);
@@ -150,7 +150,7 @@ describe("PubSub broker", () => {
     it("Ok when a specific voice channel id is passed along, but no the one currently recorded", async () => {
       const debugFired = waitEvent<IRecordAttemptInfo>(broker, "debug");
       await expect(
-        broker.attemptStartEvent(goodStartPayloads[0])
+        broker.attemptStartEvent(goodStartPayloads[0]),
       ).resolves.not.toThrow();
 
       const modPayload = Object.assign(goodStartPayloads[0], {
@@ -162,6 +162,80 @@ describe("PubSub broker", () => {
     });
   });
 
+  describe("Correlation ids", () => {
+    // Topic names are spelled out on purpose : they are the contract with the
+    // record orchestrator, which routes replies by correlation id
+    const STARTED_TOPIC = "startedRecordingDiscord";
+    const ENDED_TOPIC = "stoppedRecordingDiscord";
+
+    it("Echo the start correlation id on the started reply", async () => {
+      const { broker, published } = getSpyingPSBroker();
+      await broker.attemptStartEvent({
+        voiceChannelId: "2222222",
+        correlationId: "start-1",
+      });
+      await broker.signalState(RECORD_EVENT.STARTED, {
+        voiceChannelId: "2222222",
+      });
+
+      const reply = published.find((p) => p.topic === STARTED_TOPIC);
+      expect(reply).toBeDefined();
+      expect(reply.payload.correlationId).toEqual("start-1");
+      expect(reply.payload.voiceChannelId).toEqual("2222222");
+    });
+
+    it("Echo the stop correlation id, not the start one, on the stopped reply", async () => {
+      const { broker, published } = getSpyingPSBroker();
+      await broker.attemptStartEvent({
+        voiceChannelId: "2222222",
+        correlationId: "start-1",
+      });
+      await broker.attemptEndEvent({
+        voiceChannelId: "2222222",
+        correlationId: "stop-1",
+      });
+      await broker.signalState(RECORD_EVENT.STOPPED, { ids: ["rec-1"] });
+
+      const reply = published.find((p) => p.topic === ENDED_TOPIC);
+      expect(reply).toBeDefined();
+      expect(reply.payload.correlationId).toEqual("stop-1");
+      expect(reply.payload.ids).toEqual(["rec-1"]);
+    });
+
+    it("Pass the correlation id along with the start event", async () => {
+      const { broker } = getSpyingPSBroker();
+      const startFired = waitEvent<IRecordAttemptInfo>(broker, "start");
+      await broker.attemptStartEvent({
+        voiceChannelId: "2222222",
+        correlationId: "start-1",
+      });
+      expect((await startFired).correlationId).toEqual("start-1");
+    });
+
+    it("Keep the correlation id across a disaster recovery restart", async () => {
+      const { broker } = getSpyingPSBroker();
+      await broker.attemptStartEvent({
+        voiceChannelId: "2222222",
+        correlationId: "start-1",
+      });
+      const state = await broker.getState();
+      expect(state.data.startCorrelationId).toEqual("start-1");
+
+      // A brand new broker, as if the process had been restarted
+      const revived = getSpyingPSBroker();
+      await expect(revived.broker.resumeFromState(state)).resolves.toEqual(
+        true,
+      );
+      await revived.broker.signalState(RECORD_EVENT.STARTED, {
+        voiceChannelId: "2222222",
+      });
+
+      const reply = revived.published.find((p) => p.topic === STARTED_TOPIC);
+      expect(reply).toBeDefined();
+      expect(reply.payload.correlationId).toEqual("start-1");
+    });
+  });
+
   describe("Trivia", () => {
     it("toString", async () => {
       const name = broker.toString();
@@ -170,11 +244,37 @@ describe("PubSub broker", () => {
   });
 });
 
+/**
+ * A broker whose published messages are recorded, to inspect the replies it
+ * sends back to the record orchestrator
+ */
+function getSpyingPSBroker() {
+  const published: { topic: string; payload: any }[] = [];
+  const client: IPubSubClientProxy = {
+    publish: async (
+      pubSubName: string,
+      topic: string,
+      payload?: Record<string, unknown>,
+    ) => {
+      published.push({ topic, payload });
+      return true;
+    },
+  };
+  return {
+    broker: new PubSubBroker(
+      client,
+      Substitute.for<IPubSubServerProxy>(),
+      "test",
+    ),
+    published,
+  };
+}
+
 function getMockedPSBroker() {
   return new PubSubBroker(
     Substitute.for<IPubSubClientProxy>(),
     Substitute.for<IPubSubServerProxy>(),
-    "test"
+    "test",
   );
 }
 
@@ -187,7 +287,7 @@ function getMockedPSBroker() {
 async function waitEvent<T>(
   cb: IController,
   evt: "start" | "end" | "error" | "debug",
-  opt = { timeout: 3000 }
+  opt = { timeout: 3000 },
 ): Promise<T> {
   return new Promise<T>((res, rej) => {
     setTimeout(rej, opt.timeout);

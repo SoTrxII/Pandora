@@ -23,6 +23,10 @@ export interface IControllerState {
 export interface IRecordAttemptInfo {
   /** ID of the Voice channel to record */
   voiceChannelId: string;
+  /** Opaque id set by the caller and echoed back on the matching reply, so it
+   * can tell which recording session a reply is about. Optional : only the
+   * pub/sub controller uses it, text commands and interactions reply in band */
+  correlationId?: string;
 }
 
 /**
@@ -85,11 +89,11 @@ export declare interface IController {
    */
   signalState(
     event: RECORD_EVENT.STARTED,
-    payload?: Record<string, any>
+    payload?: Record<string, any>,
   ): Promise<void>;
   signalState(
     event: RECORD_EVENT.STOPPED,
-    payload?: { ids: string[] }
+    payload?: { ids: string[] },
   ): Promise<void>;
 }
 
@@ -107,7 +111,7 @@ export declare interface IUnifiedBotController {
     listener: (arg: {
       data: IRecordAttemptInfo;
       controller: IController;
-    }) => void
+    }) => void,
   ): this;
 
   /**
@@ -117,7 +121,7 @@ export declare interface IUnifiedBotController {
    */
   on(
     event: "end",
-    listener: (arg: { data: any; controller: IController }) => void
+    listener: (arg: { data: any; controller: IController }) => void,
   ): this;
 
   /**
@@ -127,7 +131,7 @@ export declare interface IUnifiedBotController {
    */
   on(
     event: "error",
-    listener: (arg: { error: Error; controller: IController }) => void
+    listener: (arg: { error: Error; controller: IController }) => void,
   ): this;
 
   /**
@@ -137,7 +141,7 @@ export declare interface IUnifiedBotController {
    */
   on(
     event: "debug",
-    listener: (arg: { message: string; controller: IController }) => void
+    listener: (arg: { message: string; controller: IController }) => void,
   ): this;
 
   /**

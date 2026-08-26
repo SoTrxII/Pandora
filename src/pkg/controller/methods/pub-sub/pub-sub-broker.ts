@@ -16,6 +16,11 @@ export class PubSubBroker extends EventEmitter implements IController {
 
   /** Currently recorded voice channel */
   private recVoiceChannelId: string = undefined;
+  /** Correlation ids of the requests we still owe a reply to.
+   * Start and stop are tracked apart : they are two distinct requests, and a
+   * session is usually stopped long after it was started */
+  private startCorrelationId: string = undefined;
+  private endCorrelationId: string = undefined;
   /** All the topics used by this broker
    * We're going to use the Reply/Response pattern
    * */
@@ -32,7 +37,7 @@ export class PubSubBroker extends EventEmitter implements IController {
     private readonly client: IPubSubClientProxy,
     @inject(TYPES.PubSubServerProxy)
     private readonly server: IPubSubServerProxy,
-    private readonly pubSubName: string
+    private readonly pubSubName: string,
   ) {
     super();
   }
@@ -41,13 +46,13 @@ export class PubSubBroker extends EventEmitter implements IController {
     await this.server.subscribe(
       this.pubSubName,
       PubSubBroker.TOPICS.START,
-      (data) => this.attemptStartEvent(data)
+      (data) => this.attemptStartEvent(data),
     );
 
     await this.server.subscribe(
       this.pubSubName,
       PubSubBroker.TOPICS.END,
-      (data) => this.attemptEndEvent(data)
+      (data) => this.attemptEndEvent(data),
     );
 
     await this.server.start();
@@ -63,16 +68,18 @@ export class PubSubBroker extends EventEmitter implements IController {
     if (this.isStartPayloadValid(data ?? undefined)) {
       this.emit("start", {
         voiceChannelId: data.voiceChannelId,
+        correlationId: data.correlationId,
       } as IRecordAttemptInfo);
       this.recVoiceChannelId = data.voiceChannelId;
+      this.startCorrelationId = data.correlationId;
     } else {
       this.emit(
         "error",
         new Error(
           `Couldn't start recording, invalid start payload ${JSON.stringify(
-            data
-          )}`
-        )
+            data,
+          )}`,
+        ),
       );
     }
   }
@@ -82,13 +89,15 @@ export class PubSubBroker extends EventEmitter implements IController {
    * @param data
    */
   async attemptEndEvent(data: IRecordAttemptInfo): Promise<void> {
-    if (this.isEndPayloadValid(data)) this.emit("end");
-    else
+    if (this.isEndPayloadValid(data)) {
+      this.endCorrelationId = data?.correlationId;
+      this.emit("end");
+    } else
       this.emit(
         "debug",
         `Received end event, but conditions not met to end recording : recVoiceChannelID: ${
           this.recVoiceChannelId
-        }, payload : ${JSON.stringify(data)}`
+        }, payload : ${JSON.stringify(data)}`,
       );
   }
 
@@ -131,6 +140,7 @@ export class PubSubBroker extends EventEmitter implements IController {
       /** We don't need any additional data */
       data: {
         recVoiceChannelId: this.recVoiceChannelId,
+        startCorrelationId: this.startCorrelationId,
       },
     };
     return state;
@@ -140,8 +150,15 @@ export class PubSubBroker extends EventEmitter implements IController {
     if (state.name !== PubSubBroker.CLASS_ID) return false;
     if (state?.data?.recVoiceChannelId === undefined) return false;
     this.recVoiceChannelId = state?.data?.recVoiceChannelId;
+    // Replayed as-is rather than dropped : whoever asked for this recording
+    // has long stopped waiting, and an id they no longer know about is
+    // discarded on their side. A blank one could be mistaken for a live request
+    this.startCorrelationId = state?.data?.startCorrelationId;
     try {
-      await this.attemptStartEvent({ voiceChannelId: this.recVoiceChannelId });
+      await this.attemptStartEvent({
+        voiceChannelId: this.recVoiceChannelId,
+        correlationId: this.startCorrelationId,
+      });
     } catch (e) {
       this.emit("error", e);
       return false;
@@ -158,7 +175,7 @@ export class PubSubBroker extends EventEmitter implements IController {
 
   async signalState(
     event: RECORD_EVENT,
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
   ): Promise<void> {
     // There is a weird ts bug on enum when used in switches
     // the '+' is converting the enum back to a number
@@ -167,15 +184,17 @@ export class PubSubBroker extends EventEmitter implements IController {
         await this.client.publish(
           this.pubSubName,
           PubSubBroker.TOPICS.STARTED,
-          payload
+          {
+            ...payload,
+            correlationId: this.startCorrelationId,
+          },
         );
         break;
       case RECORD_EVENT.STOPPED:
-        await this.client.publish(
-          this.pubSubName,
-          PubSubBroker.TOPICS.ENDED,
-          payload
-        );
+        await this.client.publish(this.pubSubName, PubSubBroker.TOPICS.ENDED, {
+          ...payload,
+          correlationId: this.endCorrelationId,
+        });
         break;
       default:
         this.emit("error", new Error(`Unhandled signal received ${event}`));
