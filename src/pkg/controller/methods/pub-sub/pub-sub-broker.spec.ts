@@ -236,6 +236,72 @@ describe("PubSub broker", () => {
     });
   });
 
+  describe("Pool instances", () => {
+    it("Listen on the shared topics when running alone", () => {
+      const { broker } = getSpyingPSBroker();
+      expect(broker.requestTopic("startRecordingDiscord")).toEqual(
+        "startRecordingDiscord",
+      );
+      expect(broker.requestTopic("stopRecordingDiscord")).toEqual(
+        "stopRecordingDiscord",
+      );
+    });
+
+    it("Listen on its own topics when part of a pool", () => {
+      const { broker } = getSpyingPSBroker("pandora-1");
+      expect(broker.requestTopic("startRecordingDiscord")).toEqual(
+        "startRecordingDiscord-pandora-1",
+      );
+      expect(broker.requestTopic("stopRecordingDiscord")).toEqual(
+        "stopRecordingDiscord-pandora-1",
+      );
+    });
+
+    it("Two instances of a pool never share a request topic", () => {
+      const one = getSpyingPSBroker("pandora-0").broker;
+      const two = getSpyingPSBroker("pandora-1").broker;
+      expect(one.requestTopic("startRecordingDiscord")).not.toEqual(
+        two.requestTopic("startRecordingDiscord"),
+      );
+    });
+
+    it("Subscribe to its own topics, not the shared ones", async () => {
+      const subscribed: string[] = [];
+      const server: IPubSubServerProxy = {
+        subscribe: async (_pubSubName, topic) => {
+          subscribed.push(topic);
+        },
+        start: async () => undefined,
+      };
+      const broker = new PubSubBroker(
+        Substitute.for<IPubSubClientProxy>(),
+        server,
+        "test",
+        "pandora-2",
+      );
+      await broker.start();
+
+      expect(subscribed).toEqual([
+        "startRecordingDiscord-pandora-2",
+        "stopRecordingDiscord-pandora-2",
+      ]);
+    });
+
+    it("Still replies on the shared topics, so the orchestrator hears it", async () => {
+      const { broker, published } = getSpyingPSBroker("pandora-2");
+      await broker.attemptStartEvent({
+        voiceChannelId: "2222222",
+        correlationId: "start-1",
+      });
+      await broker.signalState(RECORD_EVENT.STARTED, {
+        voiceChannelId: "2222222",
+      });
+      expect(published.map((p) => p.topic)).toEqual([
+        "startedRecordingDiscord",
+      ]);
+    });
+  });
+
   describe("Trivia", () => {
     it("toString", async () => {
       const name = broker.toString();
@@ -248,7 +314,7 @@ describe("PubSub broker", () => {
  * A broker whose published messages are recorded, to inspect the replies it
  * sends back to the record orchestrator
  */
-function getSpyingPSBroker() {
+function getSpyingPSBroker(instanceId?: string) {
   const published: { topic: string; payload: any }[] = [];
   const client: IPubSubClientProxy = {
     publish: async (
@@ -265,6 +331,7 @@ function getSpyingPSBroker() {
       client,
       Substitute.for<IPubSubServerProxy>(),
       "test",
+      instanceId,
     ),
     published,
   };

@@ -53,12 +53,19 @@ container
 const DAPR_SERVER_PORT = process.env.DAPR_SERVER_PORT ?? "50053";
 const DAPR_HTTP_PORT = process.env.DAPR_HTTP_PORT ?? "3503";
 console.debug(
-  `Dapr params : http port -> "${DAPR_HTTP_PORT}", server port -> "${DAPR_SERVER_PORT}"`
+  `Dapr params : http port -> "${DAPR_HTTP_PORT}", server port -> "${DAPR_SERVER_PORT}"`,
 );
 container
   .bind<IRecorderService>(TYPES.AudioRecorder)
   .to(AudioRecorder)
   .inSingletonScope();
+
+/** Which instance of the pool this process is.
+ * Set it when running several Pandora instances against the same Dapr
+ * components : it keeps their state apart and lets the record orchestrator
+ * address one of them in particular. Left unset, Pandora behaves as before */
+const INSTANCE_ID = process.env?.PANDORA_INSTANCE_ID;
+if (INSTANCE_ID) console.log(`Running as pool instance "${INSTANCE_ID}"`);
 
 /** State store */
 container
@@ -69,8 +76,9 @@ container
   .toConstantValue(
     new ExternalStore(
       container.get<IStoreProxy>(TYPES.StoreProxy),
-      process.env.STORE_NAME
-    )
+      process.env.STORE_NAME,
+      INSTANCE_ID,
+    ),
   );
 
 /** Object Store */
@@ -82,8 +90,8 @@ if (objComponent) {
     .toConstantValue(
       new DaprObjectStorageAdapter(
         new DaprClient({ daprPort: DAPR_HTTP_PORT }).binding,
-        process.env.OBJECT_STORE_NAME
-      )
+        process.env.OBJECT_STORE_NAME,
+      ),
     );
   container.bind<IObjectStore>(TYPES.ObjectStore).to(ExternalObjectStore);
 }
@@ -105,8 +113,9 @@ if (PSComponent) {
       new PubSubBroker(
         container.get<IPubSubClientProxy>(TYPES.PubSubClientProxy),
         container.get<IPubSubServerProxy>(TYPES.PubSubServerProxy),
-        process.env.PUBSUB_NAME
-      )
+        process.env.PUBSUB_NAME,
+        INSTANCE_ID,
+      ),
     );
 }
 
@@ -130,8 +139,8 @@ container.bind(TYPES.ClientProvider).toProvider((context) => {
       client.on("error", (err) => {
         console.log(
           `Catching connexion reset by peers. Discord.js should reconnect. Details : ${JSON.stringify(
-            err
-          )}`
+            err,
+          )}`,
         );
       });
       client.login(process.env.PANDORA_TOKEN).catch(rej);
@@ -154,7 +163,7 @@ if (commandPrefix) {
       {
         start: "record",
         end: "end",
-      }
+      },
     );
   });
 }
@@ -176,7 +185,7 @@ if (process.env?.DISABLE_INTERACTION === undefined) {
           description: "End a previously started recording",
           type: ApplicationCommandType.ChatInput,
         },
-      ]
+      ],
     );
   });
 }
@@ -200,6 +209,6 @@ container
       container.get<IRecorderService>(TYPES.AudioRecorder),
       container.get<IRecordingStore>(TYPES.StateStore),
       container.get<ILogger>(TYPES.Logger),
-      objStore
-    )
+      objStore,
+    ),
   );

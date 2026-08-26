@@ -38,20 +38,33 @@ export class PubSubBroker extends EventEmitter implements IController {
     @inject(TYPES.PubSubServerProxy)
     private readonly server: IPubSubServerProxy,
     private readonly pubSubName: string,
+    /** Which instance of the pool we are. Left out when Pandora runs alone */
+    private readonly instanceId?: string,
   ) {
     super();
+  }
+
+  /**
+   * Requests are addressed to one specific instance of the pool, so several
+   * Pandora instances can be driven independently over the same pub/sub
+   * component. Replies keep going to the shared topics : the record
+   * orchestrator tells them apart by correlation id.
+   * @param topic the base topic name
+   */
+  requestTopic(topic: string): string {
+    return this.instanceId ? `${topic}-${this.instanceId}` : topic;
   }
 
   async start(): Promise<void> {
     await this.server.subscribe(
       this.pubSubName,
-      PubSubBroker.TOPICS.START,
+      this.requestTopic(PubSubBroker.TOPICS.START),
       (data) => this.attemptStartEvent(data),
     );
 
     await this.server.subscribe(
       this.pubSubName,
-      PubSubBroker.TOPICS.END,
+      this.requestTopic(PubSubBroker.TOPICS.END),
       (data) => this.attemptEndEvent(data),
     );
 
