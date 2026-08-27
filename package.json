@@ -48,10 +48,10 @@
     "bufferutil": {
       "built": true
     },
-    "zlib-sync": {
+    "protobufjs": {
       "built": true
     },
-    "protobufjs": {
+    "zlib-sync": {
       "built": true
     }
   },

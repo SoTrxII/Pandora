@@ -2368,6 +2368,15 @@ __metadata:
     typescript: 5.7.2
     winston: ^3.17.0
     zlib-sync: ^0.1.10
+  dependenciesMeta:
+    "@discordjs/opus":
+      built: true
+    bufferutil:
+      built: true
+    protobufjs:
+      built: true
+    zlib-sync:
+      built: true
   languageName: unknown
   linkType: soft
 
