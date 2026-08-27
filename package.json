@@ -41,6 +41,20 @@
     "winston": "^3.17.0",
     "zlib-sync": "^0.1.10"
   },
+  "dependenciesMeta": {
+    "@discordjs/opus": {
+      "built": true
+    },
+    "bufferutil": {
+      "built": true
+    },
+    "zlib-sync": {
+      "built": true
+    },
+    "protobufjs": {
+      "built": true
+    }
+  },
   "devDependencies": {
     "@fluffy-spoon/substitute": "^1.208.0",
     "@types/jest": "^29.5.14",

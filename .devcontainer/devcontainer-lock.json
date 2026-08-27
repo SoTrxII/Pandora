@@ -1,0 +1,29 @@
+{
+  "features": {
+    "ghcr.io/dapr/cli/dapr-cli:0": {
+      "version": "0.1.0",
+      "resolved": "ghcr.io/dapr/cli/dapr-cli@sha256:e935ef5a3e52f5cba9e87ccda401d380b8426c965068574cad0403e430c459dc",
+      "integrity": "sha256:e935ef5a3e52f5cba9e87ccda401d380b8426c965068574cad0403e430c459dc"
+    },
+    "ghcr.io/devcontainers-extra/features/ffmpeg-apt-get:1": {
+      "version": "1.0.17",
+      "resolved": "ghcr.io/devcontainers-extra/features/ffmpeg-apt-get@sha256:735491c8e9b2236cae727d6d4904663f6a58eb131d8c4b6b18fd0eea3d8c5b71",
+      "integrity": "sha256:735491c8e9b2236cae727d6d4904663f6a58eb131d8c4b6b18fd0eea3d8c5b71"
+    },
+    "ghcr.io/devcontainers-extra/features/pnpm:2": {
+      "version": "2.0.5",
+      "resolved": "ghcr.io/devcontainers-extra/features/pnpm@sha256:694c2b6182435c9e9c06f6071728b087c1181b38c18cecf0defe2ab8c11cddd6",
+      "integrity": "sha256:694c2b6182435c9e9c06f6071728b087c1181b38c18cecf0defe2ab8c11cddd6"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "2.17.0",
+      "resolved": "ghcr.io/devcontainers/features/docker-in-docker@sha256:25b9f05705ffba7dbe503230ac76081419306f8c8bc88e0ce78c4ecd99a0c78c",
+      "integrity": "sha256:25b9f05705ffba7dbe503230ac76081419306f8c8bc88e0ce78c4ecd99a0c78c"
+    },
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "version": "1.0.2",
+      "resolved": "ghcr.io/rocker-org/devcontainer-features/apt-packages@sha256:87a4d7750a596a5db034ba8508782f31aebdc2ffe955c66aaecb33d9de2ecdae",
+      "integrity": "sha256:87a4d7750a596a5db034ba8508782f31aebdc2ffe955c66aaecb33d9de2ecdae"
+    }
+  }
+}
