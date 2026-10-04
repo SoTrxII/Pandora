@@ -20,7 +20,7 @@ import { ILogger } from "./pkg/logger/logger-api";
 import { exit } from "process";
 import { IObjectStore } from "./pkg/object-store/objet-store-api";
 import { join } from "path";
-import { readdir } from "fs/promises";
+import { readdir, readFile } from "fs/promises";
 
 @injectable()
 export class Pandora {
@@ -334,6 +334,7 @@ export class Pandora {
     this.logger.info(`Recording ended successfully!`);
     await c.signalState(RECORD_EVENT.STOPPED, {
       ids: currentState.recordsIds,
+      participants: await this.getParticipants(currentState.recordsIds),
     });
   }
 
@@ -390,6 +391,39 @@ export class Pandora {
       controllerState: await c.getState(),
       voiceChannelId,
     };
+  }
+
+  /**
+   * Discord ids of everyone recorded in any of the provided records.
+   *
+   * Read from the ".users" files rather than from the recorder : its own list
+   * is emptied when the recording stops, and only ever covers the last record
+   * of a session that had to reconnect.
+   * A user is listed on their first audio packet, so this is everyone who was
+   * heard at least once, not everyone who joined the voice channel.
+   * @param recordsIds
+   */
+  async getParticipants(recordsIds: string[]): Promise<string[]> {
+    const participants = new Set<string>();
+    for (const id of recordsIds) {
+      try {
+        const recordsDir = this.audioRecorder.getRecordingsDirectory();
+        const raw = await readFile(join(recordsDir, `${id}.ogg.users`), "utf8");
+        // The file is the inside of a JSON object, one line per track.
+        // Track 0 is a placeholder with no user in it
+        const tracks: Record<string, { id?: string }> = JSON.parse(`{${raw}}`);
+        Object.values(tracks)
+          .filter((user) => typeof user?.id === "string")
+          .forEach((user) => participants.add(user.id));
+      } catch (e) {
+        // Knowing who was there is a bonus, it must never prevent a record
+        // from ending
+        this.logger.warn(`Could not read the users of record ${id}`, {
+          err: e,
+        });
+      }
+    }
+    return [...participants];
   }
 
   /**

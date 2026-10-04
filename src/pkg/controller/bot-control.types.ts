@@ -93,7 +93,8 @@ export declare interface IController {
   ): Promise<void>;
   signalState(
     event: RECORD_EVENT.STOPPED,
-    payload?: { ids: string[] },
+    /** Records ids, and the Discord ids of everyone heard in them */
+    payload?: { ids: string[]; participants: string[] },
   ): Promise<void>;
 }
 

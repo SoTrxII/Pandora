@@ -71,7 +71,16 @@ Likewise, to stop recording, a message must be published to the topic `stopRecor
 
 This allows for multiple bot instances recording multiple voices channels at the same time to be controlled by the same backing process.
 
-The acknowledgment will be sent on the topic `stoppedRecordingDiscord`.
+The acknowledgment will be sent on the topic `stoppedRecordingDiscord`. It carries the ids of the records made, and
+the Discord ids of everyone who was heard in them :
+
+```ts
+{
+  ids: ["872660673"],
+  // Users who spoke at least once, not everyone who joined the voice channel
+  participants: ["<Discord user ID>", "<Discord user ID>"],
+}
+```
 
 ## Architecture
 

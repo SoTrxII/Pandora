@@ -168,6 +168,81 @@ describe("Pandora", () => {
       await rm(fakeRecordingDir, { recursive: true });
     });
   });
+  describe("Participants of a recording", () => {
+    let fakeRecordingDir: string;
+    let pandora: Pandora;
+    beforeAll(async () => {
+      fakeRecordingDir = await mkdtemp(join(tmpdir(), "u-"));
+      // What the recorder writes : a placeholder, then one line per user heard
+      await writeFile(
+        join(fakeRecordingDir, "1.ogg.users"),
+        '"0":{}\n' +
+          ',"1":{"id":"111","name":"gm","discrim":"0"}\n' +
+          ',"2":{"id":"222","name":"player","discrim":"0"}\n'
+      );
+      // A second record of the same session, after a reconnection
+      await writeFile(
+        join(fakeRecordingDir, "2.ogg.users"),
+        '"0":{}\n' +
+          ',"1":{"id":"222","name":"player","discrim":"0"}\n' +
+          ',"2":{"id":"333","name":"latecomer","discrim":"0"}\n'
+      );
+      // Nobody was heard
+      await writeFile(join(fakeRecordingDir, "3.ogg.users"), '"0":{}\n');
+      await writeFile(join(fakeRecordingDir, "4.ogg.users"), "not a roster");
+      const audioRecorder = Substitute.for<IRecorderService>();
+      audioRecorder.getRecordingsDirectory().returns(fakeRecordingDir);
+      pandora = getMockedPandora({ audioRecorder });
+    });
+    it("Lists everyone heard, without the placeholder", async () => {
+      await expect(pandora.getParticipants(["1"])).resolves.toEqual([
+        "111",
+        "222",
+      ]);
+    });
+    it("Lists each user once over all the records of a session", async () => {
+      await expect(pandora.getParticipants(["1", "2"])).resolves.toEqual([
+        "111",
+        "222",
+        "333",
+      ]);
+    });
+    it("Is empty when nobody was heard", async () => {
+      await expect(pandora.getParticipants(["3"])).resolves.toEqual([]);
+    });
+    it("Ignores a record whose users can't be read", async () => {
+      // "4" is malformed, "5" doesn't exist
+      await expect(pandora.getParticipants(["4", "5", "1"])).resolves.toEqual([
+        "111",
+        "222",
+      ]);
+    });
+    it("Is sent along with the records ids when the recording ends", async () => {
+      const audioRecorder = Substitute.for<IRecorderService>();
+      audioRecorder.getRecordingsDirectory().returns(fakeRecordingDir);
+      const ending = getMockedPandora({
+        stateStore: getMockedStore().filled,
+        audioRecorder,
+      });
+      await ending.bootUp();
+      const controller = Substitute.for<IController>();
+      await ending.endRecording(controller, undefined);
+      controller.received(1).signalState(
+        Arg.any(),
+        Arg.is(
+          (payload) =>
+            JSON.stringify(payload) ===
+            JSON.stringify({
+              ids: [FAKE_RECORD_ID],
+              participants: ["111", "222"],
+            })
+        )
+      );
+    });
+    afterAll(async () => {
+      await rm(fakeRecordingDir, { recursive: true });
+    });
+  });
   describe("Persist a new record", () => {
     const pandora = getMockedPandora();
     it("When there was another record", async () => {
