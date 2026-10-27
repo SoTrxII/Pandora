@@ -31,6 +31,11 @@ export interface IRecorderService {
    * Return the base path of the recording directory
    */
   getRecordingsDirectory(): string;
+
+  /**
+   * Unix ms of the current record's t=0, the instant its audio is timed from
+   */
+  getStartTime(): number;
 }
 
 export interface Chunk extends Buffer {

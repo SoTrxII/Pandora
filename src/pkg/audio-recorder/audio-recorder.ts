@@ -54,6 +54,8 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
   private voiceConnection: VoiceConnection;
   private pingProcess: Timeout;
   private startTime: AccurateTime;
+  // The same instant as startTime, on the wall clock
+  private startedAt: number;
   private audioSubscriptions: Map<string, any> = new Map();
   // Active users, by ID
   private users = new Map<string, User>();
@@ -98,6 +100,7 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
     this.isRecording = true;
     const recordId = String(~~(Math.random() * 1000000000));
     this.startTime = hrtime();
+    this.startedAt = Date.now();
     this.voiceChannel = voiceChannel;
     const guild = this.voiceChannel.guild;
     this.multiTracksEncoder.initStreams(recordId, {
@@ -172,6 +175,7 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
     this.voiceConnection = undefined;
     this.audioSubscriptions.clear();
     this.startTime = undefined;
+    this.startedAt = undefined;
     this.users.clear();
     this.trackNo = 1;
     this.userTrackNos.clear();
@@ -287,5 +291,9 @@ export class AudioRecorder extends EventEmitter implements IRecorderService {
 
   getRecordingsDirectory(): string {
     return this.multiTracksEncoder.getRecordingsDirectory();
+  }
+
+  getStartTime(): number {
+    return this.startedAt;
   }
 }

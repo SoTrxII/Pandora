@@ -227,9 +227,13 @@ export class Pandora {
       );
       await this.stateStore.setState(newState);
 
-      // and inform the controller that the recording started
+      // and inform the controller that the recording started. startedAt is the
+      // t=0 the jukebox is aligned on: the controller only hears of the start
+      // after the message and the state above, 535 ms later on 2026-10-26,
+      // and the music and picture then played that much early
       await c.signalState(RECORD_EVENT.STARTED, {
         voiceChannelId: data.voiceChannelId,
+        startedAt: this.audioRecorder.getStartTime(),
       });
     } catch (e) {
       switch (e.constructor.name) {

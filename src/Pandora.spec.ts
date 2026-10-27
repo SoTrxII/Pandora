@@ -99,6 +99,21 @@ describe("Pandora", () => {
         })
       ).resolves.not.toThrow();
     });
+    it("Tells when the record's t=0 was, for the jukebox", async () => {
+      const audioRecorder = Substitute.for<IRecorderService>();
+      audioRecorder.startRecording(Arg.any()).resolves("1");
+      audioRecorder.getStartTime().returns(1712345678901);
+      const stateStore = Substitute.for<IRecordingStore>();
+      stateStore.getState().resolves(undefined);
+      const pandora = getMockedPandora({ stateStore, audioRecorder });
+      jest.spyOn(pandora, "getVoiceChannelFromId").mockReturnValue({} as any);
+      const controller = Substitute.for<IController>();
+      await pandora.startRecording(controller, { voiceChannelId: "2" });
+      controller.received(1).signalState(
+        Arg.any(),
+        Arg.is((payload) => payload.startedAt === 1712345678901)
+      );
+    });
   });
   describe("End a recording", () => {
     let fakeRecordingDir: string;
